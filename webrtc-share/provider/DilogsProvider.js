@@ -2628,7 +2628,99 @@ Best regards`;
           </div>
         </div>
       </DialogComponent>
+            {/* Create share Link */}
+            {/* Create share Link */}
+<DialogComponent open={shareLinkOpen} setOpen={setShareLinkOpen} isCloseable={true}>
+  <div className="w-[400px] max-h-[90vh] rounded-2xl bg-purple-500 shadow-md overflow-hidden">
+    {/* Header */}
+    <div className="flex items-center justify-center bg-purple-500 text-white p-4 m-0 relative">
+      <div className="flex items-center gap-2">
+        <Link className="w-5 h-5 text-white" />
+        <h2 className="text-base font-semibold">Share Meeting</h2>
+      </div>
+      <button
+        onClick={() => setShareLinkOpen(false)}
+        aria-label="Close"
+        className="absolute right-4 text-white hover:text-gray-200"
+      >
+        <XIcon className="w-4 h-4" />
+      </button>
+    </div>
 
+    <div className="p-5 bg-white rounded-b-2xl max-h-[calc(90vh-4rem)] overflow-y-auto">
+      {selectedMeetingForShare ? (
+        <div className="space-y-4">
+          {/* Meeting Info */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Meeting Details</h3>
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="font-medium">ID:</span> {selectedMeetingForShare.meeting_id}
+              </div>
+              <div>
+                <span className="font-medium">Resident:</span> {selectedMeetingForShare.name || 'N/A'}
+              </div>
+              <div>
+                <span className="font-medium">Address:</span> {selectedMeetingForShare.address || 'N/A'}
+              </div>
+            </div>
+          </div>
+
+          {/* Share Link */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h4 className="font-semibold mb-2">Share Link</h4>
+            <div className="flex items-center gap-2">
+              <code className="bg-white p-2 rounded text-xs flex-1 border">
+                {generateShareLink(selectedMeetingForShare.meeting_id)}
+              </code>
+              <button
+                onClick={handleCreateShareLink}
+                disabled={exportLoading.share}
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-3 py-2 rounded text-xs font-medium transition-colors flex items-center gap-1"
+              >
+                {exportLoading.share ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Copying...
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Content Summary */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-green-50 p-3 rounded">
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {selectedMeetingForShare.recordings?.length || 0}
+                </div>
+                <div className="text-xs text-gray-600">Videos</div>
+              </div>
+            </div>
+            <div className="bg-purple-50 p-3 rounded">
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">
+                  {selectedMeetingForShare.screenshots?.length || 0}
+                </div>
+                <div className="text-xs text-gray-600">Screenshots</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          <p>No meeting selected</p>
+        </div>
+      )}
+    </div>
+  </div>
+</DialogComponent>
       {/* ...existing dialogs... */}
     </DialogContext.Provider>
   );
