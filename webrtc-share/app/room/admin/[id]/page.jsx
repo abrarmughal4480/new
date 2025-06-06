@@ -1671,215 +1671,216 @@ export default function Page({ params }) {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Resident Information */}
-            <div>
-              <div className="flex flex-col md:flex-row md:justify-between gap-4 mb-6">
 
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-3">
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Resident Information */}
+          <div>
+            <div className="flex flex-col md:flex-row md:justify-between gap-4 mb-6">
 
-                    <label htmlFor="residentAddress" className="block text-lg font-medium mb-2">
-                      Resident Address :
-                    </label>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-3">
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button className={"bg-amber-500 text-white rounded-3xl flex items-center gap-2 text-xl"}>Actions <img src="/icons/arrow-down.svg" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className={'bg-white border-none shadow-sm'}>
-                        <DropdownMenuItem>
-                          <button className='bg-none border-none cursor-pointer' onClick={handleLogout}>Logout</button>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>Dashboard</DropdownMenuItem>
-                        <DropdownMenuItem>
+                  <label htmlFor="residentAddress" className="block text-lg font-medium mb-2">
+                    Resident Address :
+                  </label>
 
-                          <button className='bg-none border-none cursor-pointer' onClick={() => setTickerOpen(true)}>Raise Support Ticket</button>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem><button className='bg-none border-none cursor-pointer' onClick={() => setResetOpen(true)}>Reset Password</button></DropdownMenuItem>
-                        <DropdownMenuItem > <button className='bg-none border-none cursor-pointer' onClick={() => setInviteOpen(true)}>Invite Coworkers</button></DropdownMenuItem>
-                        <DropdownMenuItem><button className='bg-none border-none cursor-pointer' onClick={() => setMessageOpen(true)}>Amend Message</button></DropdownMenuItem>
-                        <DropdownMenuItem> <button className='bg-none border-none cursor-pointer text-left' onClick={() => setLandlordDialogOpen(true)}>Add Landlord Name/Logo/ <br />Profile Image </button></DropdownMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className={"bg-amber-500 text-white rounded-3xl flex items-center gap-2 text-xl"}>Actions <img src="/icons/arrow-down.svg" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className={'bg-white border-none shadow-sm'}>
+                      <DropdownMenuItem>
+                        <button className='bg-none border-none cursor-pointer' onClick={handleLogout}>Logout</button>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>Dashboard</DropdownMenuItem>
+                      <DropdownMenuItem>
 
-                        <DropdownMenuItem > <button className='bg-none border-none cursor-pointer' onClick={() => setFaqOpen(true)}>FAQ's</button></DropdownMenuItem>
-                        <DropdownMenuItem > <button className='bg-none border-none cursor-pointer' onClick={() => setFeedbackOpen(true)}>Give Feedback</button></DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        <button className='bg-none border-none cursor-pointer' onClick={() => setTickerOpen(true)}>Raise Support Ticket</button>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem><button className='bg-none border-none cursor-pointer' onClick={() => setResetOpen(true)}>Reset Password</button></DropdownMenuItem>
+                      <DropdownMenuItem > <button className='bg-none border-none cursor-pointer' onClick={() => setInviteOpen(true)}>Invite Coworkers</button></DropdownMenuItem>
+                      <DropdownMenuItem><button className='bg-none border-none cursor-pointer' onClick={() => setMessageOpen(true)}>Amend Message</button></DropdownMenuItem>
+                      <DropdownMenuItem> <button className='bg-none border-none cursor-pointer text-left' onClick={() => setLandlordDialogOpen(true)}>Add Landlord Name/Logo/ <br />Profile Image </button></DropdownMenuItem>
 
-                  </div>
-                  <textarea
-                    id="residentAddress"
-                    value={residentAddress}
-                    onChange={(e) => setResidentAddress(e.target.value)}
-                    placeholder="Enter resident's address"
-                    rows={1}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-300"
-                  />
+                      <DropdownMenuItem > <button className='bg-none border-none cursor-pointer' onClick={() => setFaqOpen(true)}>FAQ's</button></DropdownMenuItem>
+                      <DropdownMenuItem > <button className='bg-none border-none cursor-pointer' onClick={() => setFeedbackOpen(true)}>Give Feedback</button></DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                 </div>
-              </div>
-              <div className="mb-6">
                 <textarea
-                  placeholder="Post code:"
-                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-300"
-                  rows={1}
-                />
-              </div>
-              <div className="mb-6">
-                <textarea
-                  id="postCode"
-                  value={postCode}
-                  onChange={(e) => setPostCode(e.target.value)}
-                  placeholder="Ref:"
+                  id="residentAddress"
+                  value={residentAddress}
+                  onChange={(e) => setResidentAddress(e.target.value)}
+                  placeholder="Enter resident's address"
                   rows={1}
                   className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-300"
                 />
               </div>
             </div>
-
-            {/* Repair Details */}
-            <div>
-              <label htmlFor="repairDetails" className="block text-lg font-medium mb-2">
-                Repair details :
-              </label>
+            <div className="mb-6">
               <textarea
-                id="repairDetails"
-                value={repairDetails}
-                onChange={(e) => setRepairDetails(e.target.value)}
-                placeholder="Description of repair"
-                rows={5}
+                placeholder="Post code:"
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-300"
+                rows={1}
+              />
+            </div>
+            <div className="mb-6">
+              <textarea
+                id="postCode"
+                value={postCode}
+                onChange={(e) => setPostCode(e.target.value)}
+                placeholder="Ref:"
+                rows={1}
                 className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-300"
               />
             </div>
+          </div>
 
-            {/* Target Time */}
-            <div className="relative">
-              <label htmlFor="targetTime" className="block text-lg font-medium mb-2">
-                Target time :
-              </label>
-              <div className="flex items-start gap-2">
-                <div className="relative flex-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className="w-full flex items-center justify-between p-3 bg-orange-100 rounded-md text-left"
+          {/* Repair Details */}
+          <div>
+            <label htmlFor="repairDetails" className="block text-lg font-medium mb-2">
+              Repair details :
+            </label>
+            <textarea
+              id="repairDetails"
+              value={repairDetails}
+              onChange={(e) => setRepairDetails(e.target.value)}
+              placeholder="Description of repair"
+              rows={5}
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+          </div>
+
+          {/* Target Time */}
+          <div className="relative">
+            <label htmlFor="targetTime" className="block text-lg font-medium mb-2">
+              Target time :
+            </label>
+            <div className="flex items-start gap-2">
+              <div className="relative flex-1">
+                <button
+                  type="button"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="w-full flex items-center justify-between p-3 bg-orange-100 rounded-md text-left"
+                >
+                  <span>{targetTime}</span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showDropdown ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <span>{targetTime}</span>
-                    <svg
-                      className={`w-4 h-4 transition-transform ${showDropdown ? "rotate-180" : ""}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
 
-                  {showDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
-                      <ul>
-                        <li
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => {
-                            setTargetTime("Emergency 24 Hours")
-                            setShowDropdown(false)
-                          }}
-                        >
-                          Emergency 24 Hours
-                        </li>
-                        <li
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => {
-                            setTargetTime("Urgent (7 Days)")
-                            setShowDropdown(false)
-                          }}
-                        >
-                          Urgent (7 Days)
-                        </li>
-                        <li
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => {
-                            setTargetTime("Routine (28 Days)")
-                            setShowDropdown(false)
-                          }}
-                        >
-                          Routine (28 Days)
-                        </li>
-                        <li
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => {
-                            setTargetTime("Follow Up Work")
-                            setShowDropdown(false)
-                          }}
-                        >
-                          Follow Up Work
-                        </li>
-                        <li
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => {
-                            setTargetTime("Other")
-                            setShowDropdown(false)
-                          }}
-                        >
-                          Other
-                        </li>
-                      </ul>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  
-                  <button
-                    type="button"
-                    onClick={(e) => handleSave(e)}
-                    disabled={!isConnected && recordings.length === 0 && screenshots.length === 0}
-                    className="w-full flex items-center justify-center p-3 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors"
-                  >
-                    Save repair
-                  </button>
-                  <button className="p-2 bg-gray-100 rounded-md hover:bg-gray-200">
-                    <Plus className="w-6 h-6" />
-                  </button>
-                </div>
+                {showDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+                    <ul>
+                      <li
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setTargetTime("Emergency 24 Hours")
+                          setShowDropdown(false)
+                        }}
+                      >
+                        Emergency 24 Hours
+                      </li>
+                      <li
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setTargetTime("Urgent (7 Days)")
+                          setShowDropdown(false)
+                        }}
+                      >
+                        Urgent (7 Days)
+                      </li>
+                      <li
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setTargetTime("Routine (28 Days)")
+                          setShowDropdown(false)
+                        }}
+                      >
+                        Routine (28 Days)
+                      </li>
+                      <li
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setTargetTime("Follow Up Work")
+                          setShowDropdown(false)
+                        }}
+                      >
+                        Follow Up Work
+                      </li>
+                      <li
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setTargetTime("Other")
+                          setShowDropdown(false)
+                        }}
+                      >
+                        Other
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 items-end">
+                
+                <button
+                  type="button"
+                  onClick={(e) => handleSave(e)}
+                  disabled={!isConnected && recordings.length === 0 && screenshots.length === 0}
+                  className="w-full flex items-center justify-center p-3 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+                >
+                  Save repair
+                </button>
+                <button className="p-2 bg-gray-100 rounded-md hover:bg-gray-200">
+                  <Plus className="w-6 h-6" />
+                </button>
               </div>
             </div>
+          </div>
 
-            {/* Generate Link Button */}
-            <button 
-              onClick={handleCreateShareLink}
-              className="w-full bg-orange-400 hover:bg-orange-500 text-white font-medium py-4 rounded-md transition-colors mt-8 mb-2 flex flex-col gap-1 items-center justify-center"
-            >
-              <span>Create Share Link</span>
-              <span className="text-xs font-normal">to send to Contractor/Supplier or Co-workers</span>
+          {/* Generate Link Button */}
+          <button 
+            onClick={handleCreateShareLink}
+            className="w-full bg-orange-400 hover:bg-orange-500 text-white font-medium py-4 rounded-md transition-colors mt-8 mb-2 flex flex-col gap-1 items-center justify-center"
+          >
+            <span>Create Share Link</span>
+            <span className="text-xs font-normal">to send to Contractor/Supplier or Co-workers</span>
+          </button>
+          <p className="text-center text-gray-600 mt-0 text-sm">(Copy and paste link to your job ticket or any system)</p>
+
+          <div className="w-full flex items-center gap-4">
+            <button onClick={handleDisconnect} disabled={!isConnected} className="bg-red-500 disabled:opacity-50 hover:bg-red-600 text-white font-medium py-4 rounded-md transition-colors flex-1 whitespace-pre">
+              End Video <br /> (Without Saving)
             </button>
-            <p className="text-center text-gray-600 mt-0 text-sm">(Copy and paste link to your job ticket or any system)</p>
-
-            <div className="w-full flex items-center gap-4">
-              <button onClick={handleDisconnect} disabled={!isConnected} className="bg-red-500 disabled:opacity-50 hover:bg-red-600 text-white font-medium py-4 rounded-md transition-colors flex-1 whitespace-pre">
-                End Video <br /> (Without Saving)
-              </button>
-              <button 
-                onClick={(e) => handleEndVideoAndSave(e)} 
-                disabled={!isConnected && recordings.length === 0 && screenshots.length === 0} 
-                className="bg-green-500 disabled:opacity-50 hover:bg-green-600 text-white font-medium py-4 rounded-md transition-colors flex-1 whitespace-pre"
-              >
-                End Video and <br />
-                Save Images
-              </button>
-            </div>
+            <button 
+              onClick={(e) => handleEndVideoAndSave(e)} 
+              disabled={!isConnected && recordings.length === 0 && screenshots.length === 0} 
+              className="bg-green-500 disabled:opacity-50 hover:bg-green-600 text-white font-medium py-4 rounded-md transition-colors flex-1 whitespace-pre"
+            >
+              End Video and <br />
+              Save Images
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Footer with token info indicator */}
-        <div className="flex items-center justify-between mt-5">
-          <p className="text-xs">User : {getDisplayName()} {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}, {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}</p>
-          {tokenLandlordInfo && (
-            <p className="text-xs text-green-600">✓ Using profile info from video link</p>
-          )}
-        </div>
+      {/* Footer with token info indicator */}
+      <div className="flex items-center justify-between mt-5">
+        <p className="text-xs">User : {getDisplayName()} {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}, {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}</p>
+        {tokenLandlordInfo && (
+          <p className="text-xs text-green-600">✓ Using profile info from video link</p>
+        )}
       </div>
     </div>
   )

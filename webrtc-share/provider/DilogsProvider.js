@@ -2610,79 +2610,19 @@ Best regards`;
                     </code>
                     <button
                       onClick={() => {
-                        const shareLink = `${window.location.origin}/share/${selectedMeetingForHistory.meeting_id}`;
-                        navigator.clipboard.writeText(shareLink).then(() => {
-                          toast.success("Link copied to clipboard!");
-                        }).catch(() => {
-                          toast.error("Failed to copy link");
-                        });
+                        navigator.clipboard.writeText(`${window.location.origin}/share/${selectedMeetingForHistory.meeting_id}`);
+                        toast.success("Link copied to clipboard!");
                       }}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-xs font-medium transition-colors flex items-center gap-2"
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
                     >
-                      <Copy className="w-4 h-4" />
                       Copy
                     </button>
                   </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        const shareLink = `${window.location.origin}/share/${selectedMeetingForHistory.meeting_id}`;
-                        window.open(shareLink, '_blank', 'noopener,noreferrer');
-                      }}
-                      className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Open Link
-                    </button>
-                    <button
-                      onClick={() => {
-                        const shareLink = `${window.location.origin}/share/${selectedMeetingForHistory.meeting_id}`;
-                        const subject = `Meeting Report - ${selectedMeetingForHistory.name || 'Repair Meeting'}`;
-                        const body = `Hi,\n\nPlease find the meeting details and content at the following link:\n\n${shareLink}\n\nMeeting ID: ${selectedMeetingForHistory.meeting_id}\nResident: ${selectedMeetingForHistory.name || 'N/A'}\nAddress: ${selectedMeetingForHistory.address || 'N/A'}\n\nBest regards`;
-                        
-                        const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                        window.open(mailtoLink, '_blank');
-                      }}
-                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <MailIcon className="w-4 h-4" />
-                      Email
-                    </button>
-                  </div>
-                </div>
-
-                {/* Instructions */}
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <h4 className="font-semibold mb-2 text-yellow-800">Usage Instructions</h4>
-                  <ul className="text-sm text-yellow-700 space-y-1">
-                    <li>• Anyone with this link can view the meeting content</li>
-                    <li>• Visitors will be asked to provide their name and email for tracking</li>
-                    <li>• You can monitor access in the History section</li>
-                    <li>• This link includes all current recordings and screenshots</li>
-                  </ul>
-                </div>
-
-                {/* QR Code Option (optional future enhancement) */}
-                <div className="text-center">
-                  <button
-                    onClick={() => {
-                      const shareLink = `${window.location.origin}/share/${selectedMeetingForShare.meeting_id}`;
-                      navigator.clipboard.writeText(shareLink).then(() => {
-                        setShareLinkOpen(false);
-                        toast.success("Link copied! You can now paste it anywhere.");
-                      });
-                    }}
-                    className="w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-3 rounded-lg font-medium transition-colors"
-                  >
-                    Copy & Close
-                  </button>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <Link className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p>No meeting selected for sharing</p>
+                <p>Not selected</p>
               </div>
             )}
           </div>
