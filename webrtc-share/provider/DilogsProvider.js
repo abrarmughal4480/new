@@ -2456,14 +2456,20 @@ ${senderName}`;
       <DialogComponent open={visitorAccessOpen} setOpen={() => { }} isCloseable={false}>
         <div className="w-[400px] max-h-[90vh] rounded-2xl bg-purple-500 shadow-md overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-center bg-purple-500 text-white p-4 m-0">
+          <div className="flex items-center justify-center bg-purple-500 text-white p-4 m-0 relative">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold">To Access Shared Link</h2>
             </div>
+            <button
+              onClick={() => window.close()}
+              aria-label="Close tab"
+              className="absolute right-4 text-white hover:text-gray-200"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
           </div>
 
           <div className="p-5 bg-white rounded-b-2xl max-h-[calc(90vh-4rem)] overflow-y-auto">
-
             <form onSubmit={handleVisitorAccess}>
               <div className="space-y-4">
                 <input
