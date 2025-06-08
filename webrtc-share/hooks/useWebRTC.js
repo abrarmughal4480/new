@@ -291,56 +291,187 @@ const useWebRTC = (isAdmin, roomId, videoRef) => {
     }, [isAdmin,roomId]);
 
     const takeScreenshot = () => {
-        // Create a hidden video element
-        const video = document.createElement('video');
-        video.srcObject = remoteStream;
-        video.width = remoteStream.getVideoTracks()[0].getSettings().width || 640;
-        video.height = remoteStream.getVideoTracks()[0].getSettings().height || 480;
-      
-        // Ensure the video is ready before taking the screenshot
-        video.onloadedmetadata = () => {
-          video.play(); // Start the video to render the frame
-          
-          // Create a canvas and draw the video frame
-          const canvas = document.createElement('canvas');
-          canvas.width = video.width;
-          canvas.height = video.height;
-          
-          // Draw the current frame to the canvas
-          canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-          
-          // Generate the image URL and save it to the state
-          const screenshot = canvas.toDataURL('image/png');
-          setScreenshots((prev) => [screenshot,...prev]);
-          
-          // Clean up the video element after the screenshot
-          video.pause();
-          video.srcObject = null;
-        };
+        if (!remoteStream) return;
+        
+        try {
+            // Get source video dimensions from the track settings
+            const videoTrack = remoteStream.getVideoTracks()[0];
+            const settings = videoTrack ? videoTrack.getSettings() : { width: 1280, height: 720 };
+            
+            // Use higher resolution - either from stream or default to 4K
+            const width = settings.width || 3840;
+            const height = settings.height || 2160;
+            
+            // Create a video element to capture the frame
+            const video = document.createElement('video');
+            video.srcObject = remoteStream;
+            video.muted = true; // Prevent audio feedback
+            
+            // Create a ultra high-resolution canvas (4x resolution for extreme quality)
+            const canvas = document.createElement('canvas');
+            canvas.width = width * 4;  // Increased from 2x to 4x resolution
+            canvas.height = height * 4;
+            const ctx = canvas.getContext('2d');
+            
+            // Apply advanced image quality settings
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.filter = 'contrast(1.05) saturate(1.05)'; // Slightly enhance contrast and color
+            
+            video.onloadedmetadata = () => {
+                video.play();
+                
+                // Add a slight delay to ensure the frame is fully rendered
+                setTimeout(() => {
+                    // Draw with proper scaling to maintain aspect ratio
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // Generate maximum quality PNG
+                    const screenshot = canvas.toDataURL('image/png', 1.0);
+                    setScreenshots((prev) => [screenshot, ...prev]);
+                    
+                    // Clean up
+                    video.pause();
+                    video.srcObject = null;
+                }, 200); // Increased delay for better frame capture
+            };
+        } catch (error) {
+            console.error('Error taking high-quality screenshot:', error);
+        }
     };
       
-
     const takeRecording = () => {
-        if(!recordingActive) {
+        if (!remoteStream) return;
+        
+        if (!recordingActive) {
+            // Define ultra-high quality options for MediaRecorder
+            const options = {
+                mimeType: 'video/webm;codecs=vp9,opus', // VP9 provides best quality/size ratio
+                videoBitsPerSecond: 8000000, // Increased to 8 Mbps for higher quality
+                audioBitsPerSecond: 192000   // Increased to 192 kbps for better audio
+            };
             
-            setRecordingActive(true);
-            const mediaRecorder = new MediaRecorder(remoteStream);
-            mediaRecorder.ondataavailable = (event) => {
-                if(event.data.size > 0) {
-                    mediaRecordingChunks.current.push(event.data);
+            // Try to use the highest quality video constraints possible
+            try {
+                const videoTrack = remoteStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    const capabilities = videoTrack.getCapabilities();
+                    // Apply highest possible constraints if supported by browser
+                    if (capabilities) {
+                        const constraints = {};
+                        
+                        // Set highest possible resolution
+                        if (capabilities.width && capabilities.width.max) {
+                            constraints.width = capabilities.width.max;
+                        }
+                        
+                        if (capabilities.height && capabilities.height.max) {
+                            constraints.height = capabilities.height.max;
+                        }
+                        
+                        // Set higher framerate for smoother video (30fps)
+                        if (capabilities.frameRate && capabilities.frameRate.max) {
+                            constraints.frameRate = Math.min(capabilities.frameRate.max, 30);
+                        }
+                        
+                        videoTrack.applyConstraints(constraints)
+                            .then(() => console.log('Applied higher quality constraints:', constraints))
+                            .catch(err => console.log('Could not apply quality constraints:', err));
+                    }
+                }
+            } catch (err) {
+                console.log('Error setting track constraints:', err);
+            }
+            
+            // Fall back to other codecs if VP9 is not supported
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options.mimeType = 'video/webm;codecs=vp8,opus';
+                // Still use high bitrate for VP8
+                options.videoBitsPerSecond = 6000000; 
+                
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options.mimeType = 'video/webm';
+                    options.videoBitsPerSecond = 4000000; // Fallback but still good quality
+                    
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        // Final fallback - use default
+                        options.mimeType = '';
+                    }
                 }
             }
-            mediaRecorder.start();
-            mediaRecorderRef.current = mediaRecorder;
-        } else {
-            setRecordingActive(false);
-            mediaRecorderRef.current.stop();
-            const recordingBlob = new Blob(mediaRecordingChunks.current, { type: 'video/webm' });
-            const recordingUrl = URL.createObjectURL(recordingBlob);
-            setRecordings(prev => [recordingUrl, ...prev]);
+            
+            setRecordingActive(true);
             mediaRecordingChunks.current = [];
+            
+            try {
+                const mediaRecorder = new MediaRecorder(remoteStream, options);
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        mediaRecordingChunks.current.push(event.data);
+                    }
+                };
+                
+                // Request data more frequently for better recovery if connection drops
+                mediaRecorder.start(500); // Reduced from 1000ms to 500ms for more frequent chunks
+                mediaRecorderRef.current = mediaRecorder;
+                
+                console.log('Recording started with high quality options:', options);
+            } catch (error) {
+                console.error('Error starting high-quality recording:', error);
+                setRecordingActive(false);
+                
+                // Try again with default options but still aim for decent quality
+                try {
+                    const mediaRecorder = new MediaRecorder(remoteStream, {
+                        videoBitsPerSecond: 2500000 // Still provide some bitrate guidance
+                    });
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) {
+                            mediaRecordingChunks.current.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.start(500);
+                    mediaRecorderRef.current = mediaRecorder;
+                    setRecordingActive(true);
+                    console.log('Recording started with fallback quality options');
+                } catch (innerError) {
+                    console.error('Failed to start recording even with fallback options:', innerError);
+                    toast?.error?.('Failed to start recording');
+                }
+            }
+        } else {
+            // Stop recording
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+                
+                mediaRecorderRef.current.onstop = () => {
+                    if (mediaRecordingChunks.current.length > 0) {
+                        const recordingBlob = new Blob(mediaRecordingChunks.current, { 
+                            type: mediaRecorderRef.current.mimeType || 'video/webm' 
+                        });
+                        
+                        const recordingUrl = URL.createObjectURL(recordingBlob);
+                        setRecordings(prev => [recordingUrl, ...prev]);
+                        mediaRecordingChunks.current = [];
+                    }
+                    setRecordingActive(false);
+                };
+            } else {
+                setRecordingActive(false);
+            }
         }
-    }
+    };
+
+    // Add function to delete a screenshot at specific index
+    const deleteScreenshot = (index) => {
+        setScreenshots(prev => {
+            const newScreenshots = [...prev];
+            newScreenshots.splice(index, 1);
+            return newScreenshots;
+        });
+    };
 
     return {
         localStream,
@@ -356,7 +487,8 @@ const useWebRTC = (isAdmin, roomId, videoRef) => {
         takeScreenshot,
         takeRecording,
         handleVideoPlay,
-        showVideoPlayError
+        showVideoPlayError,
+        deleteScreenshot  // Export the new function
     }
 }
 
