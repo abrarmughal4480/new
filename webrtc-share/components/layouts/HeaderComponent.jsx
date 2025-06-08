@@ -526,7 +526,7 @@ export const Header = () => {
             </button>
 
             <div className='flex items-center gap-2 justify-center'>
-              <p className='text-md text-gray-700'>Did not receive OTP ? </p>
+              <p className='text-md text-gray-700'>Didn't receive OTP ? </p>
               {resendTimer > 0 || isResending ? (
                 <div style={{ 
                   color: '#9CA3AF', 

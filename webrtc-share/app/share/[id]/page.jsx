@@ -134,14 +134,58 @@ export default function SharePage({ params }) {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       
-      const extractedInfo = {
-        landlordName: urlParams.get('landlordName'),
-        landlordLogo: urlParams.get('landlordLogo'),
-        profileShape: urlParams.get('profileShape') || 'circle',
-        officerImage: urlParams.get('officerImage'),
-        useLandlordLogoAsProfile: urlParams.get('useLandlordLogoAsProfile') === 'true',
-        userName: urlParams.get('userName')
+      // Check for new format parameters from DialogProvider
+      const senderName = urlParams.get('senderName');
+      const senderProfile = urlParams.get('senderProfile');
+      const profileType = urlParams.get('profileType');
+      const profileShape = urlParams.get('profileShape');
+      
+      let extractedInfo = {
+        landlordName: null,
+        landlordLogo: null,
+        profileShape: 'circle',
+        officerImage: null,
+        useLandlordLogoAsProfile: false,
+        userName: null
       };
+      
+      // Handle new format from DialogProvider
+      if (senderName || senderProfile) {
+        console.log('🔍 Detected new URL format with sender info');
+        
+        extractedInfo.landlordName = senderName ? decodeURIComponent(senderName) : null;
+        extractedInfo.userName = senderName ? decodeURIComponent(senderName) : null;
+        
+        if (senderProfile) {
+          const decodedProfile = decodeURIComponent(senderProfile);
+          
+          if (profileType === 'logo') {
+            extractedInfo.landlordLogo = decodedProfile;
+            extractedInfo.useLandlordLogoAsProfile = true;
+          } else if (profileType === 'officer') {
+            extractedInfo.officerImage = decodedProfile;
+            extractedInfo.useLandlordLogoAsProfile = false;
+          }
+        }
+        
+        if (profileShape) {
+          extractedInfo.profileShape = profileShape;
+        }
+      } 
+      // Handle existing format (fallback)
+      else {
+        console.log('🔍 Using existing URL format or no parameters found');
+        
+        // Check for existing format parameters
+        extractedInfo = {
+          landlordName: urlParams.get('landlordName'),
+          landlordLogo: urlParams.get('landlordLogo'),
+          profileShape: urlParams.get('profileShape') || 'circle',
+          officerImage: urlParams.get('officerImage'),
+          useLandlordLogoAsProfile: urlParams.get('useLandlordLogoAsProfile') === 'true',
+          userName: urlParams.get('userName')
+        };
+      }
       
       console.log('🔍 Extracted landlord info from URL:', extractedInfo);
       setLandlordInfo(extractedInfo);

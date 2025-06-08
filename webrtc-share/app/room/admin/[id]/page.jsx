@@ -1118,6 +1118,7 @@ export default function Page({ params }) {
     }
     return user?.landlordInfo?.landlordName || null;
   };
+  
 
   // Helper function to get landlord logo (prioritize token info)
   const getLandlordLogo = () => {
@@ -1199,19 +1200,20 @@ export default function Page({ params }) {
     }
 
     // Create a meeting object with current form data for sharing
-    const currentMeeting = {
+    const meetingData = {
       meeting_id: id,
       name: residentName,
       address: residentAddress,
       post_code: postCode,
       repair_detail: repairDetails,
+      target_time: targetTime,
       createdAt: new Date().toISOString(),
-      recordings: recordings,
+      recordings: recordings, // Using existing recordings array
       screenshots: [...existingScreenshots, ...screenshots.map((screenshot, index) => ({ id: `new-${index}`, url: screenshot }))]
     };
 
-    // Open the share link dialog with current meeting data
-    setShareLinkOpen(true, currentMeeting);
+    // Open the share link dialog with meeting data
+    setShareLinkOpen(true, meetingData);
   };
 
   return (
