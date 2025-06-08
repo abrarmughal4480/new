@@ -4,6 +4,7 @@ import { Camera, Trash2, ImageIcon, Plus, Maximize2, VideoIcon, PlayIcon, Save, 
 import useWebRTC from "@/hooks/useWebRTC"
 import { createRequest, getMeetingByMeetingId, deleteRecordingRequest, deleteScreenshotRequest } from "@/http/meetingHttp"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 import {
   Select,
   SelectContent,
@@ -26,6 +27,11 @@ import { useUser } from "@/provider/UserProvider"
 
 export default function Page({ params }) {
   const { id } = use(params);
+  const router = useRouter();
+  
+  // Add hydration state at the top
+  const [isClient, setIsClient] = useState(false);
+  
   const [targetTime, setTargetTime] = useState("Emergency 24 Hours")
   const [showDropdown, setShowDropdown] = useState(false)
   const [residentName, setResidentName] = useState("")
@@ -287,6 +293,8 @@ export default function Page({ params }) {
       });
       setIsAuth(false);
       setUser(null);
+      // Redirect to main page
+      router.push("../../../");
     } catch (error) {
       toast("Logout Unsuccessfull", {
         description: error?.response?.data?.message || error.message
@@ -294,8 +302,15 @@ export default function Page({ params }) {
     }
   }
 
+  // Add dashboard handler
+  const handleDashboard = () => {
+    router.push("../../../dashboard/");
+  }
+
   // Simple timer effect that doesn't interfere with WebRTC - with localStorage persistence
   useEffect(() => {
+    if (!isClient) return;
+    
     // Load saved timer data from localStorage on component mount
     const savedStartTime = localStorage.getItem(`call-start-time-${id}`);
     const savedDuration = localStorage.getItem(`call-duration-${id}`);
@@ -340,10 +355,12 @@ export default function Page({ params }) {
         clearInterval(timerRef.current);
       }
     };
-  }, [isConnected, id]);
+  }, [isConnected, id, isClient]);
 
   // Load saved duration on component mount (for page refresh scenarios)
   useEffect(() => {
+    if (!isClient) return;
+    
     const savedDuration = localStorage.getItem(`call-duration-${id}`);
     const savedStartTime = localStorage.getItem(`call-start-time-${id}`);
     
@@ -353,7 +370,7 @@ export default function Page({ params }) {
       setCallDuration(duration);
       console.log('Loaded call duration from localStorage on mount:', duration);
     }
-  }, [id]);
+  }, [id, isClient]);
 
   // Format time to MM:SS
   const formatTime = (seconds) => {
@@ -796,9 +813,9 @@ export default function Page({ params }) {
 
   // Add effect to fetch existing meeting data when component mounts
   useEffect(() => {
+    if (!isClient || !id) return;
+    
     const fetchExistingMeetingData = async () => {
-      if (!id) return;
-      
       setIsLoadingMeetingData(true);
       try {
         console.log('🔍 Fetching existing meeting data for ID:', id);
@@ -820,10 +837,10 @@ export default function Page({ params }) {
             const existingRecordings = meetingData.recordings.map(rec => ({
               id: rec._id || Date.now() + Math.random(),
               url: rec.url,
-              blob: null, // Can't recreate blob from URL
+              blob: null,
               timestamp: new Date(rec.timestamp).toLocaleString(),
               duration: rec.duration || 0,
-              isExisting: true // Flag to identify existing recordings
+              isExisting: true
             }));
             setRecordings(existingRecordings);
           }
@@ -834,7 +851,7 @@ export default function Page({ params }) {
               id: screenshot._id || Date.now() + Math.random(),
               url: screenshot.url,
               timestamp: new Date(screenshot.timestamp).toLocaleString(),
-              isExisting: true // Flag to identify existing screenshots
+              isExisting: true
             }));
             setExistingScreenshots(existingScreenshotsData);
             console.log('📸 Loaded existing screenshots:', existingScreenshotsData.length);
@@ -859,14 +876,13 @@ export default function Page({ params }) {
         } else {
           console.log('ℹ️ Error fetching meeting data:', error.message);
         }
-        // Don't show error toast for missing meetings, server errors, or network issues as they're often normal
       } finally {
         setIsLoadingMeetingData(false);
       }
     };
 
     fetchExistingMeetingData();
-  }, [id]);
+  }, [id, isClient]);
 
   // Add individual save functions
   const saveIndividualRecording = async (recording) => {
@@ -1081,9 +1097,9 @@ export default function Page({ params }) {
   
   // Add effect to fetch token-specific landlord information
   useEffect(() => {
+    if (!isClient || !id) return;
+    
     const fetchTokenLandlordInfo = async () => {
-      if (!id) return;
-      
       setIsLoadingTokenInfo(true);
       try {
         console.log('🔍 Fetching token landlord info for token:', id);
@@ -1109,7 +1125,7 @@ export default function Page({ params }) {
     };
 
     fetchTokenLandlordInfo();
-  }, [id]);
+  }, [id, isClient]);
 
   // Helper function to get landlord name (prioritize token info)
   const getLandlordName = () => {
@@ -1215,6 +1231,21 @@ export default function Page({ params }) {
     // Open the share link dialog with meeting data
     setShareLinkOpen(true, meetingData);
   };
+
+  // Add effect to handle client-side hydration right after state declarations
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Add loading guard to prevent hydration mismatch
+  if (!isClient) {
+    return (
+      <div className="max-w-6xl mx-auto p-4 py-10 font-sans">
+        <div className="flex items-center justify-center h-64">
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-4 py-10 font-sans">
@@ -1697,7 +1728,9 @@ export default function Page({ params }) {
                       <DropdownMenuItem>
                         <button className='bg-none border-none cursor-pointer' onClick={handleLogout}>Logout</button>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Dashboard</DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <button className='bg-none border-none cursor-pointer' onClick={handleDashboard}>Dashboard</button>
+                      </DropdownMenuItem>
                       <DropdownMenuItem>
 
                         <button className='bg-none border-none cursor-pointer' onClick={() => setTickerOpen(true)}>Raise Support Ticket</button>
@@ -1879,7 +1912,9 @@ export default function Page({ params }) {
 
       {/* Footer with token info indicator */}
       <div className="flex items-center justify-between mt-5">
-        <p className="text-xs">User : {getDisplayName()} {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}, {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}</p>
+        <p className="text-xs">
+          User : {getDisplayName()} {isClient ? new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}, {isClient ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase() : ''}
+        </p>
         {tokenLandlordInfo && (
           <p className="text-xs text-green-600">✓ Using profile info from video link</p>
         )}

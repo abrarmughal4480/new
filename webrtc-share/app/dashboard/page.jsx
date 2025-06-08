@@ -454,7 +454,7 @@ export default function Page() {
               >
                 <img src="/icons/download.svg" className="w-4 h-4 filter brightness-0 invert" />
                 <span className="text-sm font-medium">
-                  {viewMode === 'archived' ? 'View Unarchive' : 'View Archive'}
+                  {viewMode === 'archived' ? 'Exit Archive' : 'View Archive'}
                 </span>
               </Button>
 

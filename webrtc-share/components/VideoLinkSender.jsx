@@ -324,7 +324,7 @@ export default function VideoLinkSender({ isOpen, onClose, onSuccess }) {
       {/* Success Dialog */}
       <CustomDialog open={dialogOpen} setOpen={handleDialogClose} heading={"Link sent successfully"}>
         <div className="h-[33rem] p-16 flex flex-col items-center justify-center">
-          <Image src="/paper-plane.png" alt="video-link-dialog-bg" className='object-contain' width={200} height={200} />
+          <Image src="/paper-plane.svg" alt="video-link-dialog-bg" className='object-contain' width={200} height={200} />
           <div className='mt-5'>
             <div className='flex items-start gap-2'>
               <img className='w-8 h-8' src='/icons/single-check.svg' />
@@ -332,7 +332,7 @@ export default function VideoLinkSender({ isOpen, onClose, onSuccess }) {
                 <h2 className="text-2xl font-bold text-left">
                   Link sent successfully
                 </h2>
-                <p>Please wait a second for the user to accept...</p>
+                <p>Please wait a second for user to open and accept link...</p>
               </div>
             </div>
             
@@ -352,7 +352,7 @@ export default function VideoLinkSender({ isOpen, onClose, onSuccess }) {
               href={`/room/admin/${token}`} 
               className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 cursor-pointer h-12 rounded-3xl mt-10 text-2xl block w-full text-center transition-all duration-300"
             >
-              Join video session
+              Join Video Session
             </Link>
 
             <div className='flex items-start mt-4 justify-center'>

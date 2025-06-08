@@ -1,5 +1,5 @@
 import React, { use, useEffect, useState } from 'react';
-import { Loader2, VideoIcon } from 'lucide-react';
+import { Loader2, VideoIcon, Eye, EyeOff } from 'lucide-react';
 import { DialogComponent } from '../dialogs/DialogCompnent';
 import {
   Select,
@@ -57,6 +57,8 @@ export const Header = () => {
   const [resendCount, setResendCount] = useState(0);
   const [isResending, setIsResending] = useState(false);
   const [lastAction, setLastAction] = useState(''); // Track if last action was 'login' or 'register'
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
 
   // Reset resend states when OTP dialog opens
   useEffect(() => {
@@ -304,7 +306,7 @@ export const Header = () => {
             {
               isAuth == false && <>
                 <button href="#login" className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-full transition-colors" onClick={() => setSignInOpen(true)}>
-                  Log in
+                  Log In
                 </button>
                 <button
                   href="#signup"
@@ -372,18 +374,45 @@ export const Header = () => {
               onChange={(e) => {
                 setEmail(e.target.value)
               }}
+              autocomplete="off"
+              autoComplete="off"
             />
             <div>
-
-              <input
-                type="password"
-                placeholder="Enter a strong password"
-                className={`w-full px-4 py-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white`}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value)
-                }}
-              />
+              <div className="relative">
+                <input
+                  type={showSignUpPassword ? "text" : "password"}
+                  placeholder="Enter a strong password"
+                  className={`w-full px-4 py-4 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white`}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                  }}
+                  autocomplete="off"
+                  autoComplete="off"
+                />
+                <div
+                  onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    cursor: 'pointer',
+                    zIndex: 10,
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6B7280',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  {showSignUpPassword ? 
+                    <EyeOff style={{ width: '20px', height: '20px' }} /> : 
+                    <Eye style={{ width: '20px', height: '20px' }} />
+                  }
+                </div>
+              </div>
               <p className='text-sm my-1'>Min 8 characters including 1 capital, 1 lower case and 1 special character</p>
               <div className='w-full grid grid-cols-3 mt-3'>
                 <div className='w-full relative'>
@@ -440,7 +469,7 @@ export const Header = () => {
               type="submit"
               className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-3xl transition-colors w-full cursor-pointer mb-2 flex items-center justify-center"
             >
-              {isLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : "Sign up"}
+              {isLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : "Sign Up"}
 
             </button>
             <div className='flex items-center gap-2 justify-center mb-1 mt-4'>
@@ -455,7 +484,7 @@ export const Header = () => {
         </div>
       </CustomDialog>
 
-      <CustomDialog open={signInOpen} setOpen={setSignInOpen} isCloseable={true} heading={"Log in"}>
+      <CustomDialog open={signInOpen} setOpen={setSignInOpen} isCloseable={true} heading={"Log In"}>
         <div className=" p-4 flex flex-col items-center">
 
           <form className='w-full relative py-4 space-y-5 mt-8' onSubmit={handleLogin}>
@@ -467,18 +496,45 @@ export const Header = () => {
               onChange={(e) => {
                 setEmail(e.target.value)
               }}
+              autocomplete="off"
+              autoComplete="off"
             />
             <div>
-
-              <input
-                type="password"
-                placeholder="Enter a strong password"
-                className={`w-full px-4 py-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white`}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value)
-                }}
-              />
+              <div className="relative">
+                <input
+                  type={showSignInPassword ? "text" : "password"}
+                  placeholder="Enter a strong password"
+                  className={`w-full px-4 py-4 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white`}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                  }}
+                  autocomplete="off"
+                  autoComplete="off"
+                />
+                <div
+                  onClick={() => setShowSignInPassword(!showSignInPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    cursor: 'pointer',
+                    zIndex: 10,
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6B7280',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  {showSignInPassword ? 
+                    <EyeOff style={{ width: '20px', height: '20px' }} /> : 
+                    <Eye style={{ width: '20px', height: '20px' }} />
+                  }
+                </div>
+              </div>
               <p className='text-sm my-1'>Min 8 characters including 1 capital, 1 lower case and 1 special character</p>
             </div>
 
@@ -492,7 +548,6 @@ export const Header = () => {
             <div className='flex items-center gap-2 justify-center mb-1'>
               <p className='text-md'>Not got an account?</p>
               <button className='border-none bg-none !text-blue-500 text-md cursor-pointer' type='button' onClick={() => { setSignInOpen(false); setSignUpOpen(true) }}>Sign Up</button>
-              <p className='text-md'>here</p>
             </div>
 
             <div className='flex items-center gap-2 w-full justify-center'>
@@ -503,7 +558,12 @@ export const Header = () => {
       </CustomDialog>
 
 
-      <CustomDialog open={isOtpOpen} setOpen={setIsOtpOpen} isCloseable={true} heading={"Verify OTP"}>
+      <CustomDialog open={isOtpOpen} setOpen={setIsOtpOpen} isCloseable={true} heading={
+        <div className="text-center">
+          Verify<br/>
+          One Time Password (OTP)
+        </div>
+      }>
         <div className=" p-4 flex flex-col items-center">
 
           <form className='w-full relative py-4 space-y-5 mt-5' onSubmit={handleVerify}>
@@ -522,11 +582,11 @@ export const Header = () => {
               type="submit"
               className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-3xl transition-colors w-full cursor-pointer mb-2 flex items-center justify-center"
             >
-              {isLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : "Sign up"}
+              {isLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : lastAction === 'login' ? "Log In" : "Complete Sign Up"}
             </button>
 
             <div className='flex items-center gap-2 justify-center'>
-              <p className='text-md text-gray-700'>Didn't receive OTP ? </p>
+              <p className='text-md text-gray-700'>Didn't receive OTP? </p>
               {resendTimer > 0 || isResending ? (
                 <div style={{ 
                   color: '#9CA3AF', 
@@ -583,7 +643,7 @@ export const Header = () => {
 
           <form className='w-full relative py-4 space-y-5 mt-5' onSubmit={handleForgotPassword}>
             <p className='text-lg font-normal my-1 text-center mb-6'>Enter email address you used to
-              sign up<br /> for your account</p>
+              sign Up<br /> for your account</p>
             <input
               type="email"
               placeholder="Enter Your work Email Address"
@@ -593,6 +653,8 @@ export const Header = () => {
                 setForgotEmail(e.target.value)
               }}
               required
+              autocomplete="off"
+              autoComplete="off"
             />
 
             <button

@@ -270,7 +270,7 @@ export const DialogProvider = ({ children }) => {
 
   // Support categories array
   const supportCategories = [
-    "Accessibility (eg. Colours/font size/type face or button size/ colour or contrast issues)",
+    "Accessibility (eg. font size, button size, colour or contrast issues)",
     "'Actions' button issue",
     "Amending Message issue",
     "Dashboard issue",
@@ -1635,6 +1635,7 @@ ${senderName}`;
                     className="text-white bg-black border border-gray-300 rounded-lg px-3 py-1 text-xs mr-6"
                   >
                     <option value="10px" style={{ color: 'white' }}>Text Size: 10</option>
+                    <option value="11px" style={{ color: 'white' }}>Text Size: 11</option>
                     <option value="12px" style={{ color: 'white' }}>Text Size: 12</option>
                     <option value="13px" style={{ color: 'white' }}>Text Size: 13</option>
                     <option value="14px" style={{ color: 'white' }}>Text Size: 14</option>
@@ -1642,7 +1643,6 @@ ${senderName}`;
                     <option value="18px" style={{ color: 'white' }}>Text Size: 18</option>
                     <option value="20px" style={{ color: 'white' }}>Text Size: 20</option>
                     <option value="22px" style={{ color: 'white' }}>Text Size: 22</option>
-                    <option value="24px" style={{ color: 'white' }}>Text Size: 24</option>
                   </select>
                 </div>
               </div>
@@ -1678,6 +1678,7 @@ ${senderName}`;
                     className="text-white bg-black border border-gray-300 rounded-lg px-3 py-1 text-xs mr-6"
                   >
                     <option value="10px" style={{ color: 'white' }}>Text Size: 10</option>
+                    <option value="11px" style={{ color: 'white' }}>Text Size: 11</option>
                     <option value="12px" style={{ color: 'white' }}>Text Size: 12</option>
                     <option value="13px" style={{ color: 'white' }}>Text Size: 13</option>
                     <option value="14px" style={{ color: 'white' }}>Text Size: 14</option>
@@ -1685,7 +1686,6 @@ ${senderName}`;
                     <option value="18px" style={{ color: 'white' }}>Text Size: 18</option>
                     <option value="20px" style={{ color: 'white' }}>Text Size: 20</option>
                     <option value="22px" style={{ color: 'white' }}>Text Size: 22</option>
-                    <option value="24px" style={{ color: 'white' }}>Text Size: 24</option>
                   </select>
                 </div>
               </div>
@@ -1751,7 +1751,7 @@ ${senderName}`;
               {/* Preview Button */}
               <div className="flex justify-center">
                 <button className={`w-[70%] ${selectedButtonColor} ${selectedButtonColor === 'bg-green-800' ? 'hover:bg-green-900' : buttonColors.find(c => c.bgClass === selectedButtonColor)?.hoverClass} text-white font-bold py-3 rounded-full text-sm transition`}>
-                  Tab to allow video<br />session now
+                  Tap to allow video<br />session now
                 </button>
               </div>
             </div>
@@ -2065,7 +2065,7 @@ ${senderName}`;
       </DialogComponent>
 
       <DialogComponent open={ticketOpen} setOpen={setTickerOpen} isCloseable={true}>
-        <div className="w-[400px] max-h-[90vh] rounded-2xl bg-purple-500 shadow-md relative overflow-hidden">
+        <div className="w-[500px] max-h-[90vh] rounded-2xl bg-purple-500 shadow-md relative overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-center bg-purple-500 text-white p-4 m-0 relative">
             <div className="flex items-center gap-2">
@@ -2081,19 +2081,25 @@ ${senderName}`;
             </button>
           </div>
 
-          <div className="p-5 space-y-5 bg-white rounded-b-2xl max-h-[calc(90vh-4rem)] overflow-y-auto">
+          <div className="p-6 space-y-5 bg-white rounded-b-2xl max-h-[calc(90vh-4rem)] overflow-y-auto">
             <form onSubmit={handleRaiseSupportTicket}>
               {/* Category Dropdown */}
               <div className="mb-4">
                 <select
                   value={supportCategory}
                   onChange={(e) => setSupportCategory(e.target.value)}
-                  className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{ height: '40px' }}
+                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                  style={{ 
+                    height: '48px',
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundPosition: 'calc(100% - 16px) center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '20px'
+                  }}
                   size="1"
                   required
                 >
-                  <option value="">Choose a support category</option>
+                  <option value="">Choose a subject</option>
                   {supportCategories.map((category, index) => (
                     <option key={index} value={category}>
                       {category}
@@ -2106,7 +2112,7 @@ ${senderName}`;
               <div>
                 <textarea
                   placeholder="Enter support query"
-                  className="w-full h-32 px-4 py-2 text-sm border border-gray-300 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-40 px-4 py-3 text-sm border border-gray-300 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={supportQuery}
                   onChange={(e) => setSupportQuery(e.target.value)}
                   required
@@ -2117,7 +2123,7 @@ ${senderName}`;
               <button
                 type="submit"
                 disabled={supportLoading}
-                className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium py-2 rounded-full text-sm transition flex items-center justify-center gap-2"
+                className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium py-3 rounded-full text-sm transition flex items-center justify-center gap-2"
               >
                 {supportLoading ? (
                   <>
@@ -2215,12 +2221,12 @@ ${senderName}`;
       </DialogComponent>
 
       <DialogComponent open={feedbackOpen} setOpen={setFeedbackOpen} isCloseable={true}>
-        <div className="w-[480px] max-h-[90vh] rounded-2xl bg-purple-500 shadow-md overflow-hidden">
+        <div className="w-[520px] max-h-[90vh] rounded-2xl bg-purple-500 shadow-md overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-center bg-purple-500 text-white p-4 m-0 relative">
             <div className="flex items-center gap-2">
               <img src="/icons/ic_sharp-outlined-flag.svg" className="filter brightness-0 invert" />
-              <h2 className="text-sm font-semibold">Give Feedback/Make Suggestions</h2>
+              <h2 className="text-base font-semibold">Give Feedback/Make Suggestions</h2>
             </div>
             <button
               onClick={() => setFeedbackOpen(false)}
@@ -2231,12 +2237,12 @@ ${senderName}`;
             </button>
           </div>
 
-          <div className="p-5 bg-white rounded-b-2xl max-h-[calc(90vh-4rem)] overflow-y-auto">
+          <div className="p-6 bg-white rounded-b-2xl max-h-[calc(90vh-4rem)] overflow-y-auto">
             <form onSubmit={handleSendFeedback}>
               {/* Feedback Field */}
               <textarea
                 placeholder="We'd love to hear your feedback, so please get in touch with any feedback or suggestions"
-                className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg h-28 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg h-40 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
                 required
@@ -2246,7 +2252,7 @@ ${senderName}`;
               <button
                 type="submit"
                 disabled={feedbackLoading}
-                className="mt-4 w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white py-2 rounded-full text-sm font-medium flex items-center justify-center gap-2"
+                className="mt-4 w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white py-3 rounded-full text-sm font-medium flex items-center justify-center gap-2"
               >
                 {feedbackLoading ? (
                   <>
@@ -2492,9 +2498,6 @@ ${senderName}`;
                 )}
               </button>
             </form>
-
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            </div>
           </div>
         </div>
       </DialogComponent>
@@ -2627,7 +2630,7 @@ ${senderName}`;
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-green-50 p-3 rounded">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Recordings</span>
+                        <span className="text-sm font-medium">Video Recordings</span>
                         <span className="text-lg font-bold text-green-600">
                           {selectedMeetingForHistory.recordings?.length || 0}
                         </span>
@@ -2816,7 +2819,6 @@ ${senderName}`;
           </div>
         </div>
       </DialogComponent>
-      {/* ...existing dialogs... */}
     </DialogContext.Provider>
   );
 };
