@@ -185,15 +185,20 @@ export default function VideoLinkSender({ isOpen, onClose, onSuccess }) {
       
       // Add redirect URL logic
       let redirectUrl = ''; // Empty means use current frontend URL
+      let isDefaultRedirectUrl = false;
+      
       if (user?.landlordInfo?.redirectUrlTailored && user?.landlordInfo?.redirectUrlTailored.trim() !== 'www.') {
         redirectUrl = user.landlordInfo.redirectUrlTailored;
+        isDefaultRedirectUrl = false;
         console.log('🔗 Using tailored redirect URL:', redirectUrl);
       } else if (user?.landlordInfo?.redirectUrlDefault && user?.landlordInfo?.redirectUrlDefault.trim() !== '') {
         redirectUrl = user.landlordInfo.redirectUrlDefault;
+        isDefaultRedirectUrl = true;
         console.log('🔗 Using custom default redirect URL:', redirectUrl);
       } else {
         // Use current frontend URL as default
         redirectUrl = window.location.origin;
+        isDefaultRedirectUrl = true;
         console.log('🔗 Using current frontend URL as default:', redirectUrl);
       }
       
@@ -203,7 +208,8 @@ export default function VideoLinkSender({ isOpen, onClose, onSuccess }) {
         profileImage: profileImageUrl,
         useLandlordLogoAsProfile: user?.landlordInfo?.useLandlordLogoAsProfile || false,
         profileShape: user?.landlordInfo?.profileShape || 'circle',
-        redirectUrl: redirectUrl
+        redirectUrl: redirectUrl,
+        isDefaultRedirectUrl: isDefaultRedirectUrl
       };
       
       const queryParams = new URLSearchParams();

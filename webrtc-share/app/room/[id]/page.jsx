@@ -16,7 +16,7 @@ const page = ({params}) => {
   const [open, setOpen] = useState(true);
   const [profileData, setProfileData] = useState({});
   const [redirectUrl, setRedirectUrl] = useState('');
-  const [isTailoredUrl, setIsTailoredUrl] = useState(false);
+  const [isDefaultRedirectUrl, setIsDefaultRedirectUrl] = useState(true);
   const [showRedirectDialog, setShowRedirectDialog] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const videoRef = useRef(null);
@@ -42,10 +42,17 @@ const page = ({params}) => {
         }
       }
       
-      // Get redirect URL from URL params or tokenLandlordInfo
+      // Get redirect URL and default flag from tokenLandlordInfo
       let finalRedirectUrl = redirectUrlParam;
-      if (!finalRedirectUrl && parsedTokenInfo?.redirectUrl) {
-        finalRedirectUrl = parsedTokenInfo.redirectUrl;
+      let isDefault = true;
+      
+      if (parsedTokenInfo) {
+        if (parsedTokenInfo.redirectUrl) {
+          finalRedirectUrl = parsedTokenInfo.redirectUrl;
+        }
+        if (parsedTokenInfo.hasOwnProperty('isDefaultRedirectUrl')) {
+          isDefault = parsedTokenInfo.isDefaultRedirectUrl;
+        }
       }
       
       console.log('👤 Room [id] loaded with profile data:', {
@@ -53,7 +60,8 @@ const page = ({params}) => {
         landlordName: landlordName,
         hasProfileImage: !!profileImage,
         hasLandlordLogo: !!landlordLogo,
-        redirectUrl: finalRedirectUrl
+        redirectUrl: finalRedirectUrl,
+        isDefaultRedirectUrl: isDefault
       });
       
       setProfileData({
@@ -62,40 +70,20 @@ const page = ({params}) => {
         landlordLogo: landlordLogo
       });
       
-      // Get current domain for comparison
-      const currentDomain = window.location.hostname;
-      console.log('🌐 Current domain:', currentDomain);
+      setIsDefaultRedirectUrl(isDefault);
       
-      // Auto-detect default URL based on current frontend URL
-      const frontendUrl = window.location.origin;
-      const defaultRedirectUrl = frontendUrl; // Use current frontend URL as default
-      
-      // Check if URL is tailored or default
-      const isCurrentDomain = finalRedirectUrl && (
-        finalRedirectUrl.includes(currentDomain) ||
-        finalRedirectUrl === 'www.videodesk.co.uk' || 
-        finalRedirectUrl === 'videodesk.co.uk' ||
-        finalRedirectUrl === frontendUrl ||
-        finalRedirectUrl.trim() === 'www.' ||
-        finalRedirectUrl.trim() === ''
-      );
-      
-      const isDefault = !finalRedirectUrl || isCurrentDomain;
-      
-      setIsTailoredUrl(!isDefault);
-      
-      if (isDefault || isCurrentDomain) {
-        // Default URL or same domain - don't redirect, just stay on current site
-        setRedirectUrl('');
-        console.log('🔗 Same domain or default - no redirect needed');
-      } else {
-        // Tailored URL - direct redirect
+      if (!isDefault && finalRedirectUrl) {
+        // Tailored URL - prepare for redirect
         let formattedUrl = finalRedirectUrl;
         if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
           formattedUrl = `https://${formattedUrl}`;
         }
         setRedirectUrl(formattedUrl);
         console.log('🔗 Using tailored redirect URL (will redirect):', formattedUrl);
+      } else {
+        // Default URL - no redirect
+        setRedirectUrl('');
+        console.log('🔗 Default URL - no redirect needed');
       }
     } catch (error) {
       console.error('Error extracting profile data:', error);
@@ -105,7 +93,7 @@ const page = ({params}) => {
         landlordLogo: null
       });
       setRedirectUrl('');
-      setIsTailoredUrl(false);
+      setIsDefaultRedirectUrl(true);
     }
   }, [searchParams, id]);
   
@@ -153,27 +141,25 @@ const page = ({params}) => {
       console.log('🔚 Video call ending...');
       handleDisconnect();
       
-      if (isTailoredUrl && redirectUrl) {
-        // Tailored URL - redirect immediately without loader
-        console.log('🔗 Direct redirect to tailored URL:', redirectUrl);
+      if (!isDefaultRedirectUrl && redirectUrl) {
+        // Tailored URL - redirect to feedback page with redirect URL
+        console.log('🔗 Will redirect to feedback page with tailored URL after 22 seconds:', redirectUrl);
         setTimeout(() => {
-          window.location.href = redirectUrl;
-        }, 500);
+          window.location.href = `/?show-feedback=true&redirectUrl=${encodeURIComponent(redirectUrl)}`;
+        }, 22000);
       } else {
-        // Default URL or same domain - just close the video call, no redirect
-        console.log('🔗 No redirect needed - staying on current domain');
-        // Optional: You could show a "Thank you" message instead
+        // Default URL - redirect to feedback page after 22 seconds
+        console.log('🔗 Default URL - redirecting to feedback page after 22 seconds');
         setTimeout(() => {
-          // Just refresh the page or go to home
-          window.location.href = '/';
-        }, 1000);
+          window.location.href = '/?show-feedback=true';
+        }, 22000);
       }
     } catch (error) {
       console.error('Error ending video call:', error);
-      // Fallback - go to home page
+      // Fallback - go to home page after 22 seconds
       setTimeout(() => {
         window.location.href = '/';
-      }, 1000);
+      }, 22000);
     }
   }
 
@@ -238,7 +224,7 @@ const page = ({params}) => {
           <h3 className="text-2xl font-bold text-black pt-6 pb-6">Videodesk</h3>
           
           {/* Show redirect info if available and tailored */}
-          {isTailoredUrl && redirectUrl && (
+          {!isDefaultRedirectUrl && redirectUrl && (
             <p className="text-xs text-gray-500 text-center mt-2">
               After the call, you'll be redirected to {redirectUrl.replace('https://', '').replace('http://', '')}
             </p>

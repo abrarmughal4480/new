@@ -16,16 +16,89 @@ import SendFriendSectionComponent from '@/components/section/SendFriendSectionCo
 
 const FeedbackDialog = () => {
   const [showFeedback, setShowFeedback] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [redirectUrl, setRedirectUrl] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const handleClose = () => {
+    setShowFeedback(false);
+    // Immediate redirect when dialog closes
+    if (redirectUrl) {
+      // Redirect to tailored URL immediately
+      setTimeout(() => {
+        window.location.href = redirectUrl;
+      }, 100);
+    } else {
+      // Default behavior - stay on home page
+      setTimeout(() => {
+        router.push("/");
+      }, 100);
+    }
+  };
+
   useEffect(() => {
     const feedbackParam = searchParams.get("show-feedback");
+    const redirectUrlParam = searchParams.get("redirectUrl");
     setShowFeedback(!!feedbackParam);
-  }, [searchParams]);
+    setRedirectUrl(redirectUrlParam || '');
+    
+    // Auto close after 20 seconds
+    if (feedbackParam) {
+      const timer = setTimeout(() => {
+        handleClose();
+      }, 20000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, router]);
+
+  const handleStarClick = (starValue) => {
+    setRating(starValue);
+    // You can add API call here to submit feedback
+    console.log(`User rated: ${starValue} stars`);
+    
+    // Auto submit after 1.5 seconds
+    setTimeout(() => {
+      handleClose();
+    }, 1500);
+  };
+
+  const handleStarHover = (starValue) => {
+    setHoverRating(starValue);
+  };
+
+  const handleStarLeave = () => {
+    setHoverRating(0);
+  };
+
+  const getFeedbackText = (rating) => {
+    if (rating === 1) return "Very Bad";
+    if (rating === 2) return "Bad";
+    if (rating === 3) return "Okay";
+    if (rating === 4) return "Good";
+    if (rating === 5) return "Very Good";
+    return "";
+  };
+
+  const getStarColor = (star, currentRating) => {
+    if (star <= currentRating) {
+      if (currentRating <= 2) return "text-red-500";
+      if (currentRating === 3) return "text-yellow-500";
+      return "text-green-500";
+    }
+    return "text-gray-300 hover:text-gray-400";
+  };
+
+  const getTextColor = (rating) => {
+    if (rating <= 2) return "text-red-500";
+    if (rating === 3) return "text-yellow-500";
+    return "text-green-500";
+  };
 
   return (
-    <DialogComponent open={showFeedback} setOpen={() => router.push("/")} isCloseable={true}>
+    <DialogComponent open={showFeedback} setOpen={handleClose} isCloseable={true}>
       <div className="h-[33rem] p-4 flex flex-col items-center justify-center">
         <Image src="/paper-plane.svg" alt="video-link-dialog-bg" className='object-contain' width={150} height={150} />
         <h2 className="text-xl font-bold mt-10 text-center">
@@ -37,13 +110,29 @@ const FeedbackDialog = () => {
         </h2>
         
         <div className='flex items-center justify-center mt-8 gap-2'>
-          <StarIcon className='w-10 h-10 text-yellow-500' />
-          <StarIcon className='w-10 h-10 text-yellow-500' />
-          <StarIcon className='w-10 h-10 text-yellow-500' />
-          <StarIcon className='w-10 h-10 text-yellow-500' />
-          <StarIcon className='w-10 h-10 text-yellow-500' />
+          {[1, 2, 3, 4, 5].map((star) => (
+            <StarIcon 
+              key={star}
+              className={`w-10 h-10 cursor-pointer transition-colors duration-200 ${
+                getStarColor(star, hoverRating || rating)
+              }`}
+              onClick={() => handleStarClick(star)}
+              onMouseEnter={() => handleStarHover(star)}
+              onMouseLeave={handleStarLeave}
+              fill={star <= (hoverRating || rating) ? 'currentColor' : 'none'}
+            />
+          ))}
         </div>
-        <Image src="/device-icons.png" alt="Videodesk" className="mt-10" width={200} height={50} />
+
+        <div className="mt-4 h-8 flex items-center justify-center">
+          {(rating > 0 || hoverRating > 0) && (
+            <div className={`text-lg font-semibold ${getTextColor(hoverRating || rating)}`}>
+              {getFeedbackText(hoverRating || rating)}
+            </div>
+          )}
+        </div>
+
+        <Image src="/devices.svg" alt="Videodesk" className="mt-6" width={200} height={50} />
       </div>
     </DialogComponent>
   );

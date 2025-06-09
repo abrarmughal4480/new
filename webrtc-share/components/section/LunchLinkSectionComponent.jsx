@@ -270,7 +270,7 @@ export const LaunchLinkSection = () => {
                 <h2 className="text-2xl font-bold text-left">
                   Link sent successfully
                 </h2>
-                <p>Please wait a second for the user to accept link...</p>
+                <p>Please wait a second for user to open and accept link...</p>
               </div>
             </div>
             

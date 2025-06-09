@@ -165,8 +165,8 @@ export const DialogProvider = ({ children }) => {
           websiteLink: currentUrl,
           // Add landlord info for personalization
           landlordName: user?.landlordInfo?.landlordName,
-          senderProfile: user?.landlordInfo?.useLandlordLogoAsProfile 
-            ? user?.landlordInfo?.landlordLogo 
+          senderProfile: user?.landlordInfo?.useLandlordLogoAsProfile
+            ? user?.landlordInfo?.landlordLogo
             : user?.landlordInfo?.officerImage
         })
       );
@@ -692,14 +692,14 @@ export const DialogProvider = ({ children }) => {
   const generateShareLink = (meetingId) => {
     const baseUrl = window.location.origin;
     let shareUrl = `${baseUrl}/share/${meetingId}`;
-    
+
     // Add landlord info as URL parameters if available
     const urlParams = new URLSearchParams();
-    
+
     if (user?.landlordInfo?.landlordName) {
       urlParams.append('senderName', encodeURIComponent(user.landlordInfo.landlordName));
     }
-    
+
     // Add profile image info
     if (user?.landlordInfo?.useLandlordLogoAsProfile && user?.landlordInfo?.landlordLogo) {
       urlParams.append('senderProfile', encodeURIComponent(user.landlordInfo.landlordLogo));
@@ -714,13 +714,13 @@ export const DialogProvider = ({ children }) => {
         urlParams.append('profileShape', user.landlordInfo.profileShape);
       }
     }
-    
+
     // Append parameters if any exist
     const paramString = urlParams.toString();
     if (paramString) {
       shareUrl += `?${paramString}`;
     }
-    
+
     return shareUrl;
   };
 
@@ -883,12 +883,12 @@ ${senderName}`;
                   // Enhanced quality settings - matching WebRTC's 4x resolution approach
                   const maxDisplayWidth = 170; // Display size on PDF
                   const maxDisplayHeight = 130; // Display size on PDF
-                  
+
                   // Calculate aspect ratio and display dimensions
                   const aspectRatio = sourceWidth / sourceHeight;
                   let displayWidth = maxDisplayWidth;
                   let displayHeight = displayWidth / aspectRatio;
-                  
+
                   if (displayHeight > maxDisplayHeight) {
                     displayHeight = maxDisplayHeight;
                     displayWidth = displayHeight * aspectRatio;
@@ -1135,7 +1135,7 @@ ${senderName}`;
             imageUrl.searchParams.set('resolution', '4k'); // 4K resolution
             imageUrl.searchParams.set('enhance', 'true'); // Enable enhancement
             imageUrl.searchParams.set('bitrate', 'maximum'); // Maximum bitrate
-            
+
             // Try to fetch and embed the image with ultra-high quality settings
             const response = await fetch(imageUrl.toString());
             if (response.ok) {
@@ -1851,25 +1851,29 @@ ${senderName}`;
 
           <div className="p-5 bg-white rounded-b-2xl max-h-[calc(90vh-4rem)] overflow-y-auto">
             <div className="space-y-4">
+              {/* Landlord Name Section */}
               <div className="flex items-start flex-col gap-2">
-                <label className="text-black font-semibold">Landlord Name:</label>
-                <div className="flex items-center gap-2 w-full">
+                <label className="text-black font-semibold flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={landlordNameEnabled}
                     onChange={(e) => setLandlordNameEnabled(e.target.checked)}
                   />
+                  Landlord Name:
+                </label>
+                <div className="flex items-center gap-2 w-full ml-4">
                   <input
                     type="text"
                     placeholder="Type here"
                     value={landlordName}
                     onChange={(e) => setLandlordName(e.target.value)}
                     disabled={!landlordNameEnabled}
-                    className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none ${!landlordNameEnabled ? 'bg-gray-100' : ''}`}
+                    className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none ${!landlordNameEnabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
                   />
                 </div>
               </div>
 
+              {/* Landlord Logo Section */}
               <div className="flex items-start flex-col gap-2">
                 <label className="text-black font-semibold flex items-center gap-2">
                   <input
@@ -1879,10 +1883,10 @@ ${senderName}`;
                   />
                   Upload Landlord logo to use on dashboard:
                 </label>
-                <div className="flex relative items-center justify-center gap-2 w-[97%] p-4 h-[4rem] border border-gray-300 rounded-md ml-4">
-                  {/* Upload area - clickable only when no image */}
+                <div className={`flex relative items-center justify-center gap-2 w-[97%] p-4 h-[4rem] border border-gray-300 rounded-md ml-4 ${!landlordLogoEnabled ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
+                  {/* Upload area - clickable only when checkbox is enabled and no image */}
                   <div
-                    className={`flex items-center justify-center w-full h-full ${!landlordLogo && landlordLogoEnabled ? 'cursor-pointer' : ''}`}
+                    className={`flex items-center justify-center w-full h-full ${!landlordLogo && landlordLogoEnabled ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     onClick={() => {
                       if (!landlordLogo && landlordLogoEnabled) {
                         document.getElementById('landlordLogoInput').click();
@@ -1892,22 +1896,24 @@ ${senderName}`;
                     {landlordLogo ? (
                       <img src={landlordLogo} alt="Landlord Logo Preview" className="max-h-8 max-w-full object-contain" />
                     ) : (
-                      <img src="/icons/material-symbols_upload-rounded.svg" />
+                      <img src="/icons/material-symbols_upload-rounded.svg" className={!landlordLogoEnabled ? 'opacity-50' : ''} />
                     )}
                   </div>
 
-                  {/* Trash icon - positioned absolutely */}
-                  <button
-                    type="button"
-                    className="absolute top-2 right-2 cursor-pointer z-10"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDeleteLandlordLogo();
-                    }}
-                  >
-                    <img src="/icons/trash-red.svg" className="w-5 h-5" />
-                  </button>
+                  {/* Trash icon - only visible when logo exists and checkbox is enabled */}
+                  {landlordLogoEnabled && landlordLogo && (
+                    <button
+                      type="button"
+                      className="absolute top-2 right-2 cursor-pointer z-10"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteLandlordLogo();
+                      }}
+                    >
+                      <img src="/icons/trash-red.svg" className="w-5 h-5" />
+                    </button>
+                  )}
 
                   {/* Hidden file input */}
                   <input
@@ -1935,11 +1941,14 @@ ${senderName}`;
                       }}
                       disabled={!landlordLogoEnabled || !landlordLogo}
                     />
-                    Use landlord logo for profile photo
+                    <span className={!landlordLogoEnabled || !landlordLogo ? 'text-gray-400' : 'text-black'}>
+                      Use landlord logo for profile photo
+                    </span>
                   </label>
                 </div>
               </div>
 
+              {/* Officer Image Section */}
               <div className="flex items-start flex-col gap-2">
                 <label className="text-black font-semibold flex items-center gap-2">
                   <input
@@ -1955,10 +1964,10 @@ ${senderName}`;
                   />
                   Upload Officer image to use as profile photo:
                 </label>
-                <div className="flex relative items-center justify-center gap-2 w-[97%] p-4 h-[12rem] border border-gray-300 rounded-md ml-4">
-                  {/* Upload area - only this should trigger file selection */}
+                <div className={`flex relative items-center justify-center gap-2 w-[97%] p-4 h-[12rem] border border-gray-300 rounded-md ml-4 ${profileImageOption !== 'officer' ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
+                  {/* Upload area - only clickable when officer option is selected */}
                   <div
-                    className={`flex items-center justify-center w-full h-full ${profileImageOption === 'officer' ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                    className={`flex items-center justify-center w-full h-full ${profileImageOption === 'officer' ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     onClick={() => {
                       if (profileImageOption === 'officer') {
                         document.getElementById('officerImageInput').click();
@@ -1974,15 +1983,15 @@ ${senderName}`;
                           // If image fails to load, show initials
                           e.target.style.display = 'none';
                           e.target.parentNode.innerHTML = `
-                            <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-semibold text-xl">
-                              ${getInitials(landlordName || user?.email?.split('@')[0] || 'User')}
-                            </div>
-                          `;
+                      <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-semibold text-xl">
+                        ${getInitials(landlordName || user?.email?.split('@')[0] || 'User')}
+                      </div>
+                    `;
                         }}
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-gray-400">
-                        <img src="/icons/material-symbols_upload-rounded.svg" className="pointer-events-none mb-2" />
+                        <img src="/icons/material-symbols_upload-rounded.svg" className={`pointer-events-none mb-2 ${profileImageOption !== 'officer' ? 'opacity-50' : ''}`} />
                         {profileImageOption === 'officer' && (
                           <span className="text-xs text-center">Upload officer image</span>
                         )}
@@ -1990,21 +1999,23 @@ ${senderName}`;
                     )}
                   </div>
 
-                  {/* Trash icon - positioned absolutely to match second field */}
-                  <button
-                    type="button"
-                    className="absolute top-2 right-2 cursor-pointer"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDeleteOfficerImage();
-                    }}
-                  >
-                    <img src="/icons/trash-red.svg" className="w-5 h-5" />
-                  </button>
+                  {/* Trash icon - only visible when officer image exists and option is selected */}
+                  {profileImageOption === 'officer' && officerImage && (
+                    <button
+                      type="button"
+                      className="absolute top-2 right-2 cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteOfficerImage();
+                      }}
+                    >
+                      <img src="/icons/trash-red.svg" className="w-5 h-5" />
+                    </button>
+                  )}
 
-                  {/* Controls container - positioned absolutely without background */}
-                  <div className="absolute bottom-2 left-4 right-4 flex items-center gap-4">
+                  {/* Profile Shape Controls - only visible when officer option is selected */}
+                  <div className={`absolute bottom-2 left-4 right-4 flex items-center gap-4 ${profileImageOption !== 'officer' || !officerImage ? 'opacity-50 pointer-events-none' : ''}`}>
                     <span className="text-black font-semibold text-sm">Select Profile Shape:</span>
                     <label className="text-black font-semibold flex items-center gap-2 text-sm cursor-pointer">
                       <input
@@ -2052,12 +2063,13 @@ ${senderName}`;
                 </div>
               </div>
 
-              {/* Redirect options section - moved outside of officer image section */}
+              {/* Redirect Options Section */}
               <div className="mt-6">
                 <label className="text-black font-semibold block mb-4">
                   When video call ends, user is directed to the following website:
                 </label>
 
+                {/* Default Option */}
                 <div className="flex items-start flex-col gap-2">
                   <label className="text-black font-semibold flex items-center gap-2">
                     <input
@@ -2073,17 +2085,17 @@ ${senderName}`;
                     />
                     Default:
                   </label>
-                  <div className="flex items-center gap-2 w-full">
+                  <div className="flex items-center gap-2 w-full ml-4">
                     <input
                       type="text"
                       value={redirectUrlDefault}
                       onChange={(e) => setRedirectUrlDefault(e.target.value)}
-                      disabled={redirectOption !== 'default'}
-                      className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none ml-4 ${redirectOption !== 'default' ? 'bg-gray-100' : ''}`}
+                      disabled={true}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none bg-gray-100 cursor-not-allowed"
                     />
                   </div>
                 </div>
-
+                {/* Tailored Option */}
                 <div className="flex items-start flex-col gap-2 mt-4">
                   <label className="text-black font-semibold flex items-center gap-2">
                     <input
@@ -2099,18 +2111,17 @@ ${senderName}`;
                     />
                     Tailored:
                   </label>
-                  <div className="flex items-center gap-2 w-full">
+                  <div className="flex items-center gap-2 w-full ml-4">
                     <input
                       type="text"
                       value={redirectUrlTailored}
                       onChange={(e) => setRedirectUrlTailored(e.target.value)}
                       disabled={redirectOption !== 'tailored'}
-                      className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none ml-4 ${redirectOption !== 'tailored' ? 'bg-gray-100' : ''}`}
+                      className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none ${redirectOption !== 'tailored' ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
                     />
                   </div>
                 </div>
               </div>
-
             </div>
 
             {/* Save Button */}
@@ -2157,7 +2168,7 @@ ${senderName}`;
                   value={supportCategory}
                   onChange={(e) => setSupportCategory(e.target.value)}
                   className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-                  style={{ 
+                  style={{
                     height: '48px',
                     backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
                     backgroundPosition: 'calc(100% - 16px) center',
@@ -2786,7 +2797,7 @@ ${senderName}`;
                 </div>
 
                 {/* Share Link */}
-               <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-semibold mb-2">Share Link</h4>
                   <div className="flex items-center gap-2">
                     <code className="bg-white p-2 rounded text-xs flex-1 border">
@@ -2801,11 +2812,11 @@ ${senderName}`;
                           toast.error("No meeting selected for sharing");
                           return;
                         }
-                        
+
                         setExportLoading(prev => ({ ...prev, share: true }));
-                        
+
                         const shareLink = generateShareLink(selectedMeetingForShare.meeting_id);
-                        
+
                         try {
                           // Modern browsers with Clipboard API
                           if (navigator.clipboard && window.isSecureContext) {
@@ -2822,7 +2833,7 @@ ${senderName}`;
                             document.body.appendChild(textArea);
                             textArea.focus();
                             textArea.select();
-                            
+
                             try {
                               const successful = document.execCommand('copy');
                               if (successful) {
@@ -2835,7 +2846,7 @@ ${senderName}`;
                               window.prompt('Copy this link:', shareLink);
                               toast.success("Link displayed for manual copy");
                             }
-                            
+
                             document.body.removeChild(textArea);
                           }
                         } catch (error) {
