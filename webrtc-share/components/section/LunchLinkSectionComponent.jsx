@@ -270,7 +270,7 @@ export const LaunchLinkSection = () => {
                 <h2 className="text-2xl font-bold text-left">
                   Link sent successfully
                 </h2>
-                <p>Please wait a second for the user to accept...</p>
+                <p>Please wait a second for the user to accept link...</p>
               </div>
             </div>
             
@@ -290,12 +290,12 @@ export const LaunchLinkSection = () => {
               href={`/room/admin/${token}`} 
               className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 cursor-pointer h-12 rounded-3xl mt-10 text-2xl block w-full text-center transition-all duration-300"
             >
-              Join video session
+              Join Video Session
             </Link>
 
             <div className='flex items-start mt-4 justify-center'>
               <p className='text-center'>
-                <strong className='text-red-400 whitespace-pre'>TIP - </strong> 
+                <strong className='text-red-400 whitespace-pre'>Tip - </strong> 
                 Ask the user to check their spam folder for the email link, if they can't see it!
               </p>
             </div>

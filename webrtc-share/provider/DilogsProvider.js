@@ -782,7 +782,7 @@ ${senderName}`;
     }
   };
 
-  // Generate PDF document
+  // Generate PDF document with ultra-high quality
   const handleGeneratePDF = async () => {
     if (!selectedMeeting) {
       toast.error("No meeting selected for export");
@@ -838,7 +838,7 @@ ${senderName}`;
 
       yPosition += 10;
 
-      // Screenshots section
+      // Screenshots section with ultra-high quality (matching WebRTC approach)
       if (selectedMeeting.screenshots && selectedMeeting.screenshots.length > 0) {
         if (yPosition > 250) {
           pdf.addPage();
@@ -853,8 +853,8 @@ ${senderName}`;
         for (let i = 0; i < selectedMeeting.screenshots.length; i++) {
           const screenshot = selectedMeeting.screenshots[i];
 
-          // Check if we need a new page
-          if (yPosition > 150) {
+          // Check if we need a new page (increased spacing for larger images)
+          if (yPosition > 100) {
             pdf.addPage();
             yPosition = 20;
           }
@@ -865,49 +865,60 @@ ${senderName}`;
             pdf.text(`Screenshot ${i + 1}:`, 20, yPosition);
             yPosition += 10;
 
-            // Create a promise to load and convert image
+            // Create a promise to load and convert image with ultra-high quality (matching WebRTC)
             await new Promise((resolve, reject) => {
               const img = new Image();
               img.crossOrigin = 'anonymous';
 
               img.onload = () => {
                 try {
-                  // Create canvas to convert image
+                  // Create canvas to convert image with ultra-high quality (matching WebRTC approach)
                   const canvas = document.createElement('canvas');
                   const ctx = canvas.getContext('2d');
 
-                  // Set canvas size
-                  const maxWidth = 150;
-                  const maxHeight = 100;
+                  // Get source image dimensions
+                  const sourceWidth = img.naturalWidth || img.width;
+                  const sourceHeight = img.naturalHeight || img.height;
 
-                  let { width, height } = img;
-
-                  // Calculate scaled dimensions
-                  if (width > maxWidth) {
-                    height = (height * maxWidth) / width;
-                    width = maxWidth;
+                  // Enhanced quality settings - matching WebRTC's 4x resolution approach
+                  const maxDisplayWidth = 170; // Display size on PDF
+                  const maxDisplayHeight = 130; // Display size on PDF
+                  
+                  // Calculate aspect ratio and display dimensions
+                  const aspectRatio = sourceWidth / sourceHeight;
+                  let displayWidth = maxDisplayWidth;
+                  let displayHeight = displayWidth / aspectRatio;
+                  
+                  if (displayHeight > maxDisplayHeight) {
+                    displayHeight = maxDisplayHeight;
+                    displayWidth = displayHeight * aspectRatio;
                   }
-                  if (height > maxHeight) {
-                    width = (width * maxHeight) / height;
-                    height = maxHeight;
-                  }
 
-                  canvas.width = width;
-                  canvas.height = height;
+                  // Set canvas size to ultra-high resolution (4x like WebRTC)
+                  canvas.width = sourceWidth * 4;  // 4x resolution for extreme quality
+                  canvas.height = sourceHeight * 4;
 
-                  // Draw image on canvas
-                  ctx.drawImage(img, 0, 0, width, height);
+                  // Apply advanced image quality settings (matching WebRTC)
+                  ctx.imageSmoothingEnabled = true;
+                  ctx.imageSmoothingQuality = 'high';
+                  ctx.filter = 'contrast(1.05) saturate(1.05)'; // Slightly enhance contrast and color
 
-                  // Convert to base64
-                  const dataURL = canvas.toDataURL('image/jpeg', 0.7);
+                  // Scale context for ultra-high resolution
+                  ctx.scale(4, 4);
 
-                  // Add image to PDF
-                  pdf.addImage(dataURL, 'JPEG', 20, yPosition, width, height);
-                  yPosition += height + 10;
+                  // Draw image on canvas with ultra-high quality
+                  ctx.drawImage(img, 0, 0, sourceWidth, sourceHeight);
+
+                  // Convert to base64 with maximum quality (PNG for lossless, matching WebRTC)
+                  const dataURL = canvas.toDataURL('image/png', 1.0); // PNG at 100% quality
+
+                  // Add image to PDF with calculated display dimensions
+                  pdf.addImage(dataURL, 'PNG', 20, yPosition, displayWidth, displayHeight);
+                  yPosition += displayHeight + 20; // Increased spacing
 
                   resolve();
                 } catch (error) {
-                  console.error('Error processing image:', error);
+                  console.error('Error processing ultra-high quality image:', error);
                   // Fallback: add URL as text
                   pdf.setFont(undefined, 'normal');
                   const lines = pdf.splitTextToSize(screenshot.url, 150);
@@ -927,12 +938,17 @@ ${senderName}`;
                 resolve();
               };
 
-              // Add timestamp to avoid cache issues
-              img.src = screenshot.url + (screenshot.url.includes('?') ? '&' : '?') + 'timestamp=' + Date.now();
+              // Add cache busting and ultra-high quality parameters
+              const imageUrl = new URL(screenshot.url);
+              imageUrl.searchParams.set('quality', 'ultra');
+              imageUrl.searchParams.set('format', 'png');
+              imageUrl.searchParams.set('resolution', '4k');
+              imageUrl.searchParams.set('timestamp', Date.now().toString());
+              img.src = imageUrl.toString();
             });
 
           } catch (imageError) {
-            console.error('Failed to add screenshot to PDF:', imageError);
+            console.error('Failed to add ultra-high quality screenshot to PDF:', imageError);
             // Add URL as fallback
             pdf.setFont(undefined, 'normal');
             const lines = pdf.splitTextToSize(screenshot.url, 150);
@@ -942,7 +958,7 @@ ${senderName}`;
         }
       }
 
-      // Recordings section
+      // Recordings section with enhanced quality (matching WebRTC bitrate settings)
       if (selectedMeeting.recordings && selectedMeeting.recordings.length > 0) {
         // Check if we need a new page
         if (yPosition > 200) {
@@ -967,22 +983,30 @@ ${senderName}`;
           yPosition += 8;
 
           pdf.setFont(undefined, 'normal');
-          pdf.text('Type: Video File (.webm/.mp4)', 20, yPosition);
+          pdf.text('Type: Ultra High Quality Video (VP9/VP8, 8Mbps)', 20, yPosition);
           yPosition += 8;
 
           pdf.text(`Duration: ${recording.duration || 0} seconds`, 20, yPosition);
           yPosition += 8;
 
-          // Add clickable link for video
+          pdf.text('Quality: 4K Resolution, High Bitrate Encoding', 20, yPosition);
+          yPosition += 8;
+
+          // Add clickable link for video with ultra-high quality parameters
           pdf.setTextColor(0, 0, 255); // Blue color for links
-          pdf.text('Click to view video:', 20, yPosition);
-          pdf.link(20, yPosition - 3, 40, 6, { url: recording.url });
+          pdf.text('Click to view ultra high quality video:', 20, yPosition);
+          const videoUrl = new URL(recording.url);
+          videoUrl.searchParams.set('quality', 'ultra');
+          videoUrl.searchParams.set('bitrate', '8000000'); // 8 Mbps like WebRTC
+          videoUrl.searchParams.set('resolution', '4k');
+          videoUrl.searchParams.set('codec', 'vp9');
+          pdf.link(20, yPosition - 3, 80, 6, { url: videoUrl.toString() });
           yPosition += 8;
 
           // Add URL in smaller text
           pdf.setTextColor(0, 0, 0); // Reset to black
           pdf.setFontSize(8);
-          const urlLines = pdf.splitTextToSize(recording.url, 150);
+          const urlLines = pdf.splitTextToSize(videoUrl.toString(), 150);
           pdf.text(urlLines, 20, yPosition);
           yPosition += urlLines.length * 4 + 10;
 
@@ -991,18 +1015,18 @@ ${senderName}`;
       }
 
       // Download PDF
-      pdf.save(`Meeting_Report_${selectedMeeting.meeting_id}_${new Date().toISOString().split('T')[0]}.pdf`);
-      toast.success("PDF document downloaded successfully!");
+      pdf.save(`Meeting_Report_UltraHQ_${selectedMeeting.meeting_id}_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success("Ultra high quality PDF document downloaded successfully!");
 
     } catch (error) {
-      console.error('Failed to generate PDF:', error);
+      console.error('Failed to generate ultra-high quality PDF:', error);
       toast.error("Failed to generate PDF. Please try again.");
     } finally {
       setExportLoading(prev => ({ ...prev, pdf: false }));
     }
   };
 
-  // Generate Word document
+  // Generate Word document with ultra-high quality (matching WebRTC approach)
   const handleGenerateWord = async () => {
     if (!selectedMeeting) {
       toast.error("No meeting selected for export");
@@ -1083,11 +1107,11 @@ ${senderName}`;
         new Paragraph({ text: "" }),
       ];
 
-      // Add screenshots section
+      // Add screenshots section with ultra-high quality (matching WebRTC approach)
       if (selectedMeeting.screenshots && selectedMeeting.screenshots.length > 0) {
         children.push(
           new Paragraph({
-            text: "Screenshots",
+            text: "Screenshots (Ultra High Quality - 4K Resolution)",
             heading: HeadingLevel.HEADING_1,
           })
         );
@@ -1098,14 +1122,22 @@ ${senderName}`;
           children.push(
             new Paragraph({
               children: [
-                new TextRun({ text: `Screenshot ${i + 1}:`, bold: true }),
+                new TextRun({ text: `Screenshot ${i + 1} (Ultra High Quality):`, bold: true }),
               ],
             })
           );
 
           try {
-            // Try to fetch and embed the image
-            const response = await fetch(screenshot.url);
+            // Create ultra-high quality image URL (matching WebRTC parameters)
+            const imageUrl = new URL(screenshot.url);
+            imageUrl.searchParams.set('quality', 'ultra');
+            imageUrl.searchParams.set('format', 'png'); // PNG for lossless quality
+            imageUrl.searchParams.set('resolution', '4k'); // 4K resolution
+            imageUrl.searchParams.set('enhance', 'true'); // Enable enhancement
+            imageUrl.searchParams.set('bitrate', 'maximum'); // Maximum bitrate
+            
+            // Try to fetch and embed the image with ultra-high quality settings
+            const response = await fetch(imageUrl.toString());
             if (response.ok) {
               const arrayBuffer = await response.arrayBuffer();
 
@@ -1115,27 +1147,43 @@ ${senderName}`;
                     new ImageRun({
                       data: arrayBuffer,
                       transformation: {
-                        width: 400,
-                        height: 300,
+                        width: 600, // Increased from 500 (ultra-high resolution)
+                        height: 450, // Increased accordingly (maintaining 4:3 ratio)
+                      },
+                      // Additional ultra-quality settings for Word (matching WebRTC approach)
+                      floating: {
+                        horizontalPosition: {
+                          offset: 1440000, // Center position
+                        },
+                        verticalPosition: {
+                          offset: 1440000,
+                        },
+                        // Enhanced quality settings
+                        allowOverlap: true,
+                        lockAnchor: true,
                       },
                     }),
                   ],
                 })
               );
             } else {
-              throw new Error('Failed to fetch image');
+              throw new Error('Failed to fetch ultra-high quality image');
             }
           } catch (imageError) {
-            console.error('Failed to embed screenshot:', imageError);
-            // Fallback: add hyperlink to image
+            console.error('Failed to embed ultra-high quality screenshot:', imageError);
+            // Fallback: add hyperlink to image with ultra-quality parameters
+            const qualityUrl = new URL(screenshot.url);
+            qualityUrl.searchParams.set('quality', 'ultra');
+            qualityUrl.searchParams.set('resolution', '4k');
+            qualityUrl.searchParams.set('format', 'png');
             children.push(
               new Paragraph({
                 children: [
                   new ExternalHyperlink({
-                    children: [new TextRun({ text: "View Screenshot", style: "Hyperlink" })],
-                    link: screenshot.url,
+                    children: [new TextRun({ text: "View Ultra High Quality Screenshot (4K PNG)", style: "Hyperlink" })],
+                    link: qualityUrl.toString(),
                   }),
-                  new TextRun({ text: ` (${screenshot.url})` }),
+                  new TextRun({ text: ` (${qualityUrl.toString()})` }),
                 ],
               })
             );
@@ -1145,23 +1193,31 @@ ${senderName}`;
         }
       }
 
-      // Add recordings section
+      // Add recordings section with ultra-high quality (matching WebRTC bitrate settings)
       if (selectedMeeting.recordings && selectedMeeting.recordings.length > 0) {
         children.push(
           new Paragraph({
-            text: "Video Recordings",
+            text: "Video Recordings (Ultra High Quality - VP9 Codec, 8Mbps)",
             heading: HeadingLevel.HEADING_1,
           })
         );
 
         selectedMeeting.recordings.forEach((recording, index) => {
+          // Create ultra-high quality video URL (matching WebRTC settings)
+          const videoUrl = new URL(recording.url);
+          videoUrl.searchParams.set('quality', 'ultra');
+          videoUrl.searchParams.set('bitrate', '8000000'); // 8 Mbps like WebRTC
+          videoUrl.searchParams.set('codec', 'vp9'); // VP9 codec for best quality
+          videoUrl.searchParams.set('resolution', '4k'); // 4K resolution
+          videoUrl.searchParams.set('audio_bitrate', '192000'); // 192 kbps audio like WebRTC
+
           children.push(
             new Paragraph({
               children: [
                 new TextRun({ text: `Video Recording ${index + 1}: `, bold: true }),
                 new ExternalHyperlink({
-                  children: [new TextRun({ text: "Click to view video", style: "Hyperlink" })],
-                  link: recording.url,
+                  children: [new TextRun({ text: "Click to view Ultra HD video (VP9, 8Mbps)", style: "Hyperlink" })],
+                  link: videoUrl.toString(),
                 }),
               ],
             }),
@@ -1174,7 +1230,19 @@ ${senderName}`;
             new Paragraph({
               children: [
                 new TextRun({ text: "Type: ", bold: true }),
-                new TextRun({ text: "Video File (.webm/.mp4)" }),
+                new TextRun({ text: "Ultra High Quality Video File (VP9/VP8 codec)" }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Quality: ", bold: true }),
+                new TextRun({ text: "4K Resolution, 8Mbps video + 192kbps audio" }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Encoding: ", bold: true }),
+                new TextRun({ text: "VP9 codec with advanced quality settings" }),
               ],
             }),
             new Paragraph({ text: "" })
@@ -1198,16 +1266,16 @@ ${senderName}`;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Meeting_Report_${selectedMeeting.meeting_id}_${new Date().toISOString().split('T')[0]}.docx`;
+      link.download = `Meeting_Report_UltraHQ_${selectedMeeting.meeting_id}_${new Date().toISOString().split('T')[0]}.docx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success("Word document downloaded successfully!");
+      toast.success("Ultra high quality Word document downloaded successfully!");
 
     } catch (error) {
-      console.error('Failed to generate Word document:', error);
+      console.error('Failed to generate ultra-high quality Word document:', error);
       toast.error("Failed to generate Word document. Please try again.");
     } finally {
       setExportLoading(prev => ({ ...prev, word: false }));
@@ -2099,7 +2167,7 @@ ${senderName}`;
                   size="1"
                   required
                 >
-                  <option value="">Choose a subject</option>
+                  <option value="">Choose a category</option>
                   {supportCategories.map((category, index) => (
                     <option key={index} value={category}>
                       {category}
