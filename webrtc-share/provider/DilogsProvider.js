@@ -1588,7 +1588,7 @@ ${senderName}`;
       {children}
 
       <DialogComponent open={resetOpen} setOpen={setResetOpen} isCloseable={true}>
-        <div className="w-[340px] max-h-[90vh] rounded-2xl bg-purple-500 shadow-md overflow-hidden">
+        <div className="w-[360px] max-h-[90vh] rounded-2xl bg-purple-500 shadow-md overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-center bg-purple-500 text-white p-4 m-0 relative">
             <div className="flex items-center gap-2">

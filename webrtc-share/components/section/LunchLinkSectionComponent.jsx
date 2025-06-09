@@ -262,7 +262,7 @@ export const LaunchLinkSection = () => {
       {/* Success Dialog - Same as Dashboard */}
       <CustomDialog open={dialogOpen} setOpen={handleDialogClose} heading={"Link sent successfully"}>
         <div className="h-[33rem] p-16 flex flex-col items-center justify-center">
-          <Image src="/paper-plane.png" alt="video-link-dialog-bg" className='object-contain' width={200} height={200} />
+          <Image src="/paper-plane.svg" alt="video-link-dialog-bg" className='object-contain' width={200} height={200} />
           <div className='mt-5'>
             <div className='flex items-start gap-2'>
               <img className='w-8 h-8' src='/icons/single-check.svg' />

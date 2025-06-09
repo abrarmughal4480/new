@@ -1,307 +1,560 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 const useDrawingTools = () => {
-  const [isDrawing, setIsDrawing] = useState(false);
   const [selectedColor, setSelectedColor] = useState('#ff0000');
-  const [selectedTool, setSelectedTool] = useState('pencil');
+  const [selectedTool, setSelectedTool] = useState('brush');
   const [lineWidth, setLineWidth] = useState(3);
-  const [drawingData, setDrawingData] = useState({});
+  const [isDrawing, setIsDrawing] = useState(false);
   
-  const canvasRef = useRef(null);
-  const contextRef = useRef(null);
-  const lastPointRef = useRef(null);
-  const currentCanvasId = useRef(null);
-  const backgroundImageData = useRef(null);
-  const startPoint = useRef(null);
-  
+  // Store canvas references and drawing data
+  const canvasRefs = useRef({});
+  const contextRefs = useRef({});
+  const drawingData = useRef({});
+  const startPoints = useRef({});
+  const tempCanvas = useRef({});
   const initializedCanvases = useRef(new Set());
-  const isInitializing = useRef(false);
+  const backgroundImages = useRef({});
+  
+  // Add preview layer for shapes
+  const previewCanvases = useRef({});
 
-  const colors = useMemo(() => [
-    '#ff0000', '#00ff00', '#0000ff', '#cccc00', '#800080', '#ffff00'
-  ], []);
+  const colors = [
+    '#ff0000', '#00ff00', '#0000ff', '#ffff00', 
+    '#ff00ff', '#00ffff', '#000000', '#ffffff',
+    '#ff8000', '#8000ff', '#008000', '#800000'
+  ];
 
-  const tools = useMemo(() => [
-    { name: 'pencil', icon: '✏️', title: 'Pencil' },
-    { name: 'rectangle', icon: '▭', title: 'Rectangle' },
-    { name: 'square', icon: '⬜', title: 'Square' },
-    { name: 'ellipse', icon: '⭕', title: 'Ellipse' },
-    { name: 'eraser', icon: '🧽', title: 'Eraser' }
-  ], []);
+  const tools = [
+    { name: 'brush', icon: '🖌️', title: 'Brush' },
+    { name: 'eraser', icon: '🗑️', title: 'Eraser' },
+    { name: 'line', icon: '📏', title: 'Line' },
+    { name: 'rectangle', icon: '⬜', title: 'Rectangle' },
+    { name: 'circle', icon: '⭕', title: 'Circle' },
+    { name: 'arrow', icon: '➡️', title: 'Arrow' }
+  ];
 
-  const initializeCanvas = useCallback((canvas, backgroundImage, canvasId) => {
-    if (!canvas || isInitializing.current) return;
-    
-    const canvasKey = `${canvasId}-${canvas.width}-${canvas.height}`;
-    if (initializedCanvases.current.has(canvasKey)) {
-      canvasRef.current = canvas;
-      currentCanvasId.current = canvasId;
-      contextRef.current = canvas.getContext('2d');
-      return;
-    }
-    
-    isInitializing.current = true;
-    
-    canvasRef.current = canvas;
-    currentCanvasId.current = canvasId;
-    const context = canvas.getContext('2d');
-    contextRef.current = context;
+  const getDevicePixelRatio = () => {
+    return window.devicePixelRatio || 1;
+  };
 
+  // Fixed coordinate calculation - more consistent
+  const getMousePos = (canvas, e) => {
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
     
-    canvas.setAttribute('data-original-width', rect.width);
-    canvas.setAttribute('data-original-height', rect.height);
-
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
-    context.strokeStyle = selectedColor;
-    context.lineWidth = lineWidth;
-
-    if (backgroundImage) {
-      const img = new Image();
-      img.onload = () => {
-        context.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        if (drawingData[canvasId]) {
-          const savedCanvas = new Image();
-          savedCanvas.onload = () => {
-            context.drawImage(savedCanvas, 0, 0, canvas.width, canvas.height);
-            initializedCanvases.current.add(canvasKey);
-            isInitializing.current = false;
-          };
-          savedCanvas.src = drawingData[canvasId];
-        } else {
-          initializedCanvases.current.add(canvasKey);
-          isInitializing.current = false;
-        }
-      };
-      img.src = backgroundImage;
-    } else {
-      initializedCanvases.current.add(canvasKey);
-      isInitializing.current = false;
-    }
-  }, [lineWidth, selectedColor, drawingData]);
-
-  const saveDrawingState = useCallback(() => {
-    if (!canvasRef.current || !currentCanvasId.current) return;
-    
-    const dataURL = canvasRef.current.toDataURL('image/png', 1.0);
-    console.log('💾 Saving drawing state for canvas:', currentCanvasId.current);
-    setDrawingData(prev => {
-      const newData = {
-        ...prev,
-        [currentCanvasId.current]: dataURL
-      };
-      console.log('📊 Updated drawing data keys:', Object.keys(newData));
-      return newData;
-    });
-  }, []);
-
-  const saveCanvasSnapshot = useCallback(() => {
-    if (!canvasRef.current || !contextRef.current) return;
-    backgroundImageData.current = contextRef.current.getImageData(
-      0, 0, canvasRef.current.width, canvasRef.current.height
-    );
-  }, []);
-
-  const restoreCanvasSnapshot = useCallback(() => {
-    if (!backgroundImageData.current || !contextRef.current) return;
-    contextRef.current.putImageData(backgroundImageData.current, 0, 0);
-  }, []);
-
-  const drawShape = useCallback((startX, startY, endX, endY, tool) => {
-    if (!contextRef.current) return;
-    
-    contextRef.current.strokeStyle = selectedColor;
-    contextRef.current.lineWidth = lineWidth;
-    contextRef.current.beginPath();
-    
-    if (tool === 'rectangle') {
-      const width = endX - startX;
-      const height = endY - startY;
-      contextRef.current.strokeRect(startX, startY, width, height);
-    } else if (tool === 'square') {
-      const size = Math.max(Math.abs(endX - startX), Math.abs(endY - startY));
-      const width = endX >= startX ? size : -size;
-      const height = endY >= startY ? size : -size;
-      contextRef.current.strokeRect(startX, startY, width, height);
-    } else if (tool === 'ellipse') {
-      const radiusX = Math.abs(endX - startX) / 2;
-      const radiusY = Math.abs(endY - startY) / 2;
-      const centerX = startX + (endX - startX) / 2;
-      const centerY = startY + (endY - startY) / 2;
-      
-      contextRef.current.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-      contextRef.current.stroke();
-    }
-  }, [selectedColor, lineWidth]);
-
-  const getCoordinates = useCallback((e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
+    // Use simple coordinate transformation without complex scaling
     return {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top
     };
+  };
+
+  // Redraw all strokes on canvas WITHOUT FLASH - IMPROVED
+  const redrawCanvas = useCallback((canvasId) => {
+    const canvas = canvasRefs.current[canvasId];
+    const ctx = contextRefs.current[canvasId];
+    const data = drawingData.current[canvasId];
+    const bgImage = backgroundImages.current[canvasId];
+    
+    if (!canvas || !ctx || !data) return;
+
+    // Use requestAnimationFrame to prevent flash
+    requestAnimationFrame(() => {
+      // Store current state
+      const currentStrokeStyle = ctx.strokeStyle;
+      const currentLineWidth = ctx.lineWidth;
+      const currentCompositeOp = ctx.globalCompositeOperation;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw background immediately if available
+      if (bgImage) {
+        const rect = canvas.getBoundingClientRect();
+        ctx.drawImage(bgImage, 0, 0, rect.width, rect.height);
+        
+        // Draw all strokes with FIXED positioning
+        if (data.strokes && data.strokes.length > 0) {
+          data.strokes.forEach(stroke => {
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+            
+            if (stroke.type === 'path' && stroke.points) {
+              ctx.beginPath();
+              stroke.points.forEach((point, index) => {
+                if (index === 0) {
+                  ctx.moveTo(point.x, point.y);
+                } else {
+                  ctx.lineTo(point.x, point.y);
+                }
+              });
+              ctx.stroke();
+            } else if (stroke.type === 'shape') {
+              ctx.beginPath();
+              drawShape(ctx, stroke.startPos, stroke.endPos, stroke.tool);
+              ctx.stroke();
+            }
+          });
+        }
+      }
+      
+      // Restore previous state
+      ctx.strokeStyle = currentStrokeStyle;
+      ctx.lineWidth = currentLineWidth;
+      ctx.globalCompositeOperation = currentCompositeOp;
+    });
   }, []);
+
+  // IMPROVED Initialize canvas with better scaling
+  const initializeCanvas = useCallback((canvas, backgroundImage, canvasId) => {
+    if (!canvas || !backgroundImage) return;
+
+    // If already initialized, just redraw
+    if (initializedCanvases.current.has(canvasId)) {
+      redrawCanvas(canvasId);
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    
+    // Simplified canvas sizing - no complex DPR scaling
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Simplified context setup
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    canvasRefs.current[canvasId] = canvas;
+    contextRefs.current[canvasId] = ctx;
+    
+    // Initialize drawing data if not exists
+    if (!drawingData.current[canvasId]) {
+      drawingData.current[canvasId] = {
+        strokes: [],
+        backgroundImage: backgroundImage,
+        originalWidth: 0,
+        originalHeight: 0,
+        displayWidth: rect.width,
+        displayHeight: rect.height
+      };
+    }
+
+    // Load and cache background image
+    if (!backgroundImages.current[canvasId]) {
+      const img = new Image();
+      img.onload = () => {
+        backgroundImages.current[canvasId] = img;
+        drawingData.current[canvasId].originalWidth = img.naturalWidth;
+        drawingData.current[canvasId].originalHeight = img.naturalHeight;
+        
+        // Draw background without flash
+        requestAnimationFrame(() => {
+          ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          
+          // If there are existing strokes, redraw them
+          if (drawingData.current[canvasId].strokes.length > 0) {
+            redrawCanvas(canvasId);
+          }
+        });
+      };
+      img.src = backgroundImage;
+    } else {
+      // Background already cached, draw immediately
+      const img = backgroundImages.current[canvasId];
+      requestAnimationFrame(() => {
+        ctx.drawImage(img, 0, 0, rect.width, rect.height);
+        if (drawingData.current[canvasId].strokes.length > 0) {
+          redrawCanvas(canvasId);
+        }
+      });
+    }
+
+    initializedCanvases.current.add(canvasId);
+    console.log('Canvas initialized for:', canvasId);
+  }, [redrawCanvas]);
+
+  const updateCanvasContext = useCallback((canvasId) => {
+    const ctx = contextRefs.current[canvasId];
+    if (ctx) {
+      ctx.strokeStyle = selectedTool === 'eraser' ? 'transparent' : selectedColor;
+      ctx.lineWidth = lineWidth;
+      ctx.globalCompositeOperation = selectedTool === 'eraser' ? 'destination-out' : 'source-over';
+    }
+  }, [selectedColor, selectedTool, lineWidth]);
 
   const startDrawing = useCallback((e) => {
-    if (!contextRef.current || isInitializing.current) return;
+    const canvas = e.target;
+    const canvasId = canvas.getAttribute('data-canvas-id');
     
+    if (!canvas || !canvasId) return;
+
     setIsDrawing(true);
-    const { x, y } = getCoordinates(e);
-    
-    lastPointRef.current = { x, y };
-    startPoint.current = { x, y };
-    
-    if (['rectangle', 'square', 'ellipse'].includes(selectedTool)) {
-      saveCanvasSnapshot();
-    }
-    
-    if (selectedTool === 'pencil' || selectedTool === 'eraser') {
-      contextRef.current.strokeStyle = selectedTool === 'eraser' ? '#ffffff' : selectedColor;
-      contextRef.current.lineWidth = selectedTool === 'eraser' ? lineWidth * 3 : lineWidth;
-      contextRef.current.beginPath();
-      contextRef.current.moveTo(x, y);
-    }
-  }, [selectedTool, selectedColor, lineWidth, getCoordinates, saveCanvasSnapshot]);
+    const mousePos = getMousePos(canvas, e);
+    startPoints.current[canvasId] = mousePos;
 
+    const ctx = contextRefs.current[canvasId];
+    if (!ctx) return;
+
+    updateCanvasContext(canvasId);
+
+    if (selectedTool === 'brush' || selectedTool === 'eraser') {
+      ctx.beginPath();
+      ctx.moveTo(mousePos.x, mousePos.y);
+      
+      // Initialize strokes array if needed
+      if (!drawingData.current[canvasId].strokes) {
+        drawingData.current[canvasId].strokes = [];
+      }
+      
+      // Add new stroke
+      drawingData.current[canvasId].strokes.push({
+        tool: selectedTool,
+        color: selectedColor,
+        lineWidth: lineWidth,
+        points: [mousePos],
+        type: 'path'
+      });
+    } else {
+      // FIXED: For shapes, create a clean snapshot without clearing everything
+      const canvas = canvasRefs.current[canvasId];
+      if (canvas) {
+        const tempCanvasEl = document.createElement('canvas');
+        tempCanvasEl.width = canvas.width;
+        tempCanvasEl.height = canvas.height;
+        
+        const tempCtx = tempCanvasEl.getContext('2d');
+        // Copy EXACTLY what's on the main canvas
+        tempCtx.drawImage(canvas, 0, 0);
+        
+        tempCanvas.current[canvasId] = tempCanvasEl;
+      }
+    }
+  }, [selectedColor, selectedTool, lineWidth, updateCanvasContext]);
+
+  // FIXED draw function - no more position shifting
   const draw = useCallback((e) => {
-    if (!isDrawing || !contextRef.current || isInitializing.current) return;
-    
-    const { x, y } = getCoordinates(e);
-    
-    if (selectedTool === 'pencil' || selectedTool === 'eraser') {
-      contextRef.current.lineTo(x, y);
-      contextRef.current.stroke();
-    } else if (['rectangle', 'square', 'ellipse'].includes(selectedTool)) {
-      restoreCanvasSnapshot();
-      const startX = startPoint.current.x;
-      const startY = startPoint.current.y;
-      drawShape(startX, startY, x, y, selectedTool);
-    }
-    
-    lastPointRef.current = { x, y };
-  }, [isDrawing, selectedTool, getCoordinates, restoreCanvasSnapshot, drawShape]);
-
-  const stopDrawing = useCallback(() => {
     if (!isDrawing) return;
     
+    const canvas = e.target;
+    const canvasId = canvas.getAttribute('data-canvas-id');
+    
+    if (!canvas || !canvasId) return;
+
+    const ctx = contextRefs.current[canvasId];
+    if (!ctx) return;
+
+    const mousePos = getMousePos(canvas, e);
+
+    if (selectedTool === 'brush' || selectedTool === 'eraser') {
+      ctx.lineTo(mousePos.x, mousePos.y);
+      ctx.stroke();
+      
+      // Add point to current stroke
+      const strokes = drawingData.current[canvasId].strokes;
+      if (strokes && strokes.length > 0) {
+        const currentStroke = strokes[strokes.length - 1];
+        currentStroke.points.push(mousePos);
+      }
+    } else {
+      // FIXED: For shapes preview - no more shifting
+      const tempCanvasEl = tempCanvas.current[canvasId];
+      if (tempCanvasEl && canvas) {
+        // Clear and restore from temp canvas WITHOUT affecting stored strokes
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tempCanvasEl, 0, 0);
+        
+        // Draw preview shape with consistent context
+        const currentStrokeStyle = ctx.strokeStyle;
+        const currentLineWidth = ctx.lineWidth;
+        const currentCompositeOp = ctx.globalCompositeOperation;
+        
+        updateCanvasContext(canvasId);
+        ctx.beginPath();
+        drawShape(ctx, startPoints.current[canvasId], mousePos, selectedTool);
+        ctx.stroke();
+        
+        // Restore context
+        ctx.strokeStyle = currentStrokeStyle;
+        ctx.lineWidth = currentLineWidth;
+        ctx.globalCompositeOperation = currentCompositeOp;
+      }
+    }
+  }, [isDrawing, selectedTool, updateCanvasContext]);
+
+  // FIXED drawShape function with consistent coordinates
+  const drawShape = (ctx, startPos, endPos, tool) => {
+    if (!startPos || !endPos) return;
+
+    switch (tool) {
+      case 'line':
+        ctx.moveTo(startPos.x, startPos.y);
+        ctx.lineTo(endPos.x, endPos.y);
+        break;
+        
+      case 'rectangle':
+        const width = endPos.x - startPos.x;
+        const height = endPos.y - startPos.y;
+        ctx.rect(startPos.x, startPos.y, width, height);
+        break;
+        
+      case 'circle':
+        const radius = Math.sqrt(
+          Math.pow(endPos.x - startPos.x, 2) + Math.pow(endPos.y - startPos.y, 2)
+        );
+        ctx.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI);
+        break;
+        
+      case 'arrow':
+        drawArrow(ctx, startPos.x, startPos.y, endPos.x, endPos.y);
+        break;
+    }
+  };
+
+  const drawArrow = (ctx, fromX, fromY, toX, toY) => {
+    const headLength = 15;
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    
+    ctx.lineTo(
+      toX - headLength * Math.cos(angle - Math.PI / 6),
+      toY - headLength * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(
+      toX - headLength * Math.cos(angle + Math.PI / 6),
+      toY - headLength * Math.sin(angle + Math.PI / 6)
+    );
+  };
+
+  // FIXED stopDrawing - proper shape finalization
+  const stopDrawing = useCallback((e) => {
+    if (!isDrawing) return;
+    
+    const canvas = e.target;
+    const canvasId = canvas.getAttribute('data-canvas-id');
+    
+    if (!canvas || !canvasId) return;
+
     setIsDrawing(false);
-    // Add a small delay to ensure the final stroke is completed
-    setTimeout(() => {
-      saveDrawingState();
-    }, 50);
-  }, [isDrawing, saveDrawingState]);
+    
+    if (selectedTool !== 'brush' && selectedTool !== 'eraser') {
+      const mousePos = getMousePos(canvas, e);
+      const startPos = startPoints.current[canvasId];
+      
+      if (startPos && mousePos) {
+        // Initialize strokes array if needed
+        if (!drawingData.current[canvasId].strokes) {
+          drawingData.current[canvasId].strokes = [];
+        }
+        
+        // Add final shape to strokes with EXACT coordinates
+        drawingData.current[canvasId].strokes.push({
+          tool: selectedTool,
+          color: selectedColor,
+          lineWidth: lineWidth,
+          startPos: { ...startPos }, // Create copy to avoid reference issues
+          endPos: { ...mousePos },   // Create copy to avoid reference issues
+          type: 'shape'
+        });
+        
+        console.log('Shape added:', {
+          tool: selectedTool,
+          startPos: startPos,
+          endPos: mousePos,
+          totalStrokes: drawingData.current[canvasId].strokes.length
+        });
+      }
+      
+      // Clean up temp canvas
+      delete tempCanvas.current[canvasId];
+    }
+  }, [isDrawing, selectedTool, selectedColor, lineWidth]);
 
   const clearCanvas = useCallback((canvasId) => {
-    if (!contextRef.current || !canvasRef.current || isInitializing.current) return;
+    const canvas = canvasRefs.current[canvasId];
+    const ctx = contextRefs.current[canvasId];
+    const data = drawingData.current[canvasId];
     
-    contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    if (!canvas || !ctx || !data) return;
+
+    // Clear strokes data
+    data.strokes = [];
     
-    setDrawingData(prev => {
-      const newData = { ...prev };
-      delete newData[canvasId];
-      return newData;
+    // Clear canvas and redraw background without flash
+    requestAnimationFrame(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const bgImage = backgroundImages.current[canvasId];
+      if (bgImage) {
+        const rect = canvas.getBoundingClientRect();
+        ctx.drawImage(bgImage, 0, 0, rect.width, rect.height);
+      }
     });
-    
-    const canvasKey = `${canvasId}-${canvasRef.current.width}-${canvasRef.current.height}`;
-    initializedCanvases.current.delete(canvasKey);
-    
-    const backgroundImage = canvasRef.current.getAttribute('data-background');
-    if (backgroundImage) {
-      const img = new Image();
-      img.onload = () => {
-        contextRef.current.drawImage(img, 0, 0, canvasRef.current.width, canvasRef.current.height);
-      };
-      img.src = backgroundImage;
-    }
+
+    console.log('Canvas cleared for:', canvasId);
   }, []);
 
-  const getCanvasDataURL = useCallback((canvasId) => {
-    if (drawingData[canvasId]) {
-      return drawingData[canvasId];
-    }
-    if (!canvasRef.current) return null;
-    return canvasRef.current.toDataURL('image/png');
-  }, [drawingData]);
+  // Custom setters
+  const setSelectedColorWithUpdate = useCallback((color) => {
+    setSelectedColor(color);
+  }, []);
 
-  const mergeWithBackground = useCallback((backgroundImage, canvasId) => {
+  const setSelectedToolWithUpdate = useCallback((tool) => {
+    setSelectedTool(tool);
+  }, []);
+
+  const setLineWidthWithUpdate = useCallback((width) => {
+    setLineWidth(width);
+  }, []);
+
+  // IMPROVED Merge with background - better scaling
+  const mergeWithBackground = useCallback(async (backgroundImage, canvasId) => {
     return new Promise((resolve) => {
-      const drawingDataURL = drawingData[canvasId];
-      
-      console.log('🔄 Merging canvas:', canvasId);
-      console.log('🎨 Drawing data exists:', !!drawingDataURL);
-      
-      if (!drawingDataURL) {
-        console.log('ℹ️ No drawing data found, returning original image');
-        resolve(backgroundImage);
-        return;
+      const bgImage = backgroundImages.current[canvasId];
+      if (bgImage) {
+        // Use cached image
+        const mergeCanvas = document.createElement('canvas');
+        const mergeCtx = mergeCanvas.getContext('2d');
+        
+        mergeCanvas.width = bgImage.naturalWidth;
+        mergeCanvas.height = bgImage.naturalHeight;
+        
+        mergeCtx.imageSmoothingEnabled = true;
+        mergeCtx.imageSmoothingQuality = 'high';
+        
+        mergeCtx.drawImage(bgImage, 0, 0, bgImage.naturalWidth, bgImage.naturalHeight);
+        
+        const data = drawingData.current[canvasId];
+        if (data && data.strokes && data.strokes.length > 0) {
+          // FIXED scaling calculation
+          const scaleX = bgImage.naturalWidth / data.displayWidth;
+          const scaleY = bgImage.naturalHeight / data.displayHeight;
+          
+          data.strokes.forEach(stroke => {
+            mergeCtx.strokeStyle = stroke.color;
+            mergeCtx.lineWidth = stroke.lineWidth * Math.min(scaleX, scaleY);
+            mergeCtx.lineCap = 'round';
+            mergeCtx.lineJoin = 'round';
+            mergeCtx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+            
+            if (stroke.type === 'path' && stroke.points) {
+              mergeCtx.beginPath();
+              stroke.points.forEach((point, index) => {
+                const scaledX = point.x * scaleX;
+                const scaledY = point.y * scaleY;
+                
+                if (index === 0) {
+                  mergeCtx.moveTo(scaledX, scaledY);
+                } else {
+                  mergeCtx.lineTo(scaledX, scaledY);
+                }
+              });
+              mergeCtx.stroke();
+            } else if (stroke.type === 'shape') {
+              const startX = stroke.startPos.x * scaleX;
+              const startY = stroke.startPos.y * scaleY;
+              const endX = stroke.endPos.x * scaleX;
+              const endY = stroke.endPos.y * scaleY;
+              
+              mergeCtx.beginPath();
+              
+              switch (stroke.tool) {
+                case 'line':
+                  mergeCtx.moveTo(startX, startY);
+                  mergeCtx.lineTo(endX, endY);
+                  break;
+                  
+                case 'rectangle':
+                  const width = endX - startX;
+                  const height = endY - startY;
+                  mergeCtx.rect(startX, startY, width, height);
+                  break;
+                  
+                case 'circle':
+                  const radius = Math.sqrt(
+                    Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)
+                  );
+                  mergeCtx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                  break;
+                  
+                case 'arrow':
+                  const headLength = 15 * Math.min(scaleX, scaleY);
+                  const angle = Math.atan2(endY - startY, endX - startX);
+                  
+                  mergeCtx.moveTo(startX, startY);
+                  mergeCtx.lineTo(endX, endY);
+                  
+                  mergeCtx.lineTo(
+                    endX - headLength * Math.cos(angle - Math.PI / 6),
+                    endY - headLength * Math.sin(angle - Math.PI / 6)
+                  );
+                  mergeCtx.moveTo(endX, endY);
+                  mergeCtx.lineTo(
+                    endX - headLength * Math.cos(angle + Math.PI / 6),
+                    endY - headLength * Math.sin(angle + Math.PI / 6)
+                  );
+                  break;
+              }
+              
+              mergeCtx.stroke();
+            }
+          });
+        }
+        
+        const dataURL = mergeCanvas.toDataURL('image/png', 1.0);
+        resolve(dataURL);
+      } else {
+        // Fallback to original image loading
+        const img = new Image();
+        img.onload = () => {
+          const mergeCanvas = document.createElement('canvas');
+          const mergeCtx = mergeCanvas.getContext('2d');
+          
+          mergeCanvas.width = img.naturalWidth;
+          mergeCanvas.height = img.naturalHeight;
+          
+          mergeCtx.imageSmoothingEnabled = true;
+          mergeCtx.imageSmoothingQuality = 'high';
+          
+          mergeCtx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+          
+          const dataURL = mergeCanvas.toDataURL('image/png', 1.0);
+          resolve(dataURL);
+        };
+        img.src = backgroundImage;
       }
-
-      const tempCanvas = document.createElement('canvas');
-      const tempContext = tempCanvas.getContext('2d');
-      
-      const img = new Image();
-      img.onload = () => {
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        
-        // Draw background image first
-        tempContext.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-        
-        const drawingImg = new Image();
-        drawingImg.onload = () => {
-          // Draw the annotation layer
-          tempContext.globalCompositeOperation = 'source-over';
-          tempContext.drawImage(drawingImg, 0, 0, tempCanvas.width, tempCanvas.height);
-          const mergedDataURL = tempCanvas.toDataURL('image/png', 1.0);
-          console.log('✅ Successfully merged drawing with background');
-          resolve(mergedDataURL);
-        };
-        drawingImg.onerror = () => {
-          console.error('❌ Failed to load drawing image');
-          resolve(backgroundImage);
-        };
-        drawingImg.src = drawingDataURL;
-      };
-      img.onerror = () => {
-        console.error('❌ Failed to load background image');
-        resolve(backgroundImage);
-      };
-      img.src = backgroundImage;
     });
-  }, [drawingData]);
+  }, []);
 
-  const returnValue = useMemo(() => ({
+  return {
     colors,
     tools,
     selectedColor,
-    setSelectedColor,
+    setSelectedColor: setSelectedColorWithUpdate,
     selectedTool,
-    setSelectedTool,
+    setSelectedTool: setSelectedToolWithUpdate,
     lineWidth,
-    setLineWidth,
+    setLineWidth: setLineWidthWithUpdate,
     initializeCanvas,
     startDrawing,
     draw,
     stopDrawing,
     clearCanvas,
     mergeWithBackground,
-    isDrawing,
-    drawingData
-  }), [
-    colors,
-    tools,
-    selectedColor,
-    selectedTool,
-    lineWidth,
-    isDrawing,
-    Object.keys(drawingData).length
-  ]);
-
-  return returnValue;
+    drawingData: drawingData.current
+  };
 };
 
 export default useDrawingTools;

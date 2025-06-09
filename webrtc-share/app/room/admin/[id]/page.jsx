@@ -29,10 +29,10 @@ import { useUser } from "@/provider/UserProvider"
 export default function Page({ params }) {
   const { id } = use(params);
   const router = useRouter();
-  
+
   // Add hydration state at the top
   const [isClient, setIsClient] = useState(false);
-  
+
   const [targetTime, setTargetTime] = useState("Emergency 24 Hours")
   const [showDropdown, setShowDropdown] = useState(false)
   const [residentName, setResidentName] = useState("")
@@ -40,15 +40,15 @@ export default function Page({ params }) {
   const [postCode, setPostCode] = useState("")
   const [repairDetails, setRepairDetails] = useState("")
   const [callDuration, setCallDuration] = useState(0);
-  
+
   // Add state for existing meeting data
   const [existingMeetingData, setExistingMeetingData] = useState(null);
   const [isLoadingMeetingData, setIsLoadingMeetingData] = useState(true);
   const [existingScreenshots, setExistingScreenshots] = useState([]); // Add state for existing screenshots
-  
+
   // Add missing maximized item state
   const [maximizedItem, setMaximizedItem] = useState(null);
-  
+
   // Screen recording states
   const [isRecording, setIsRecording] = useState(false);
   const [recordings, setRecordings] = useState([]);
@@ -61,11 +61,11 @@ export default function Page({ params }) {
   // Add state for tracking video progress - MOVED HERE FROM BOTTOM
   const [videoProgress, setVideoProgress] = useState({});
 
-  
+
   // Pencil tool states - updated to use drawing hook
   const [activePencilScreenshot, setActivePencilScreenshot] = useState(null);
   const [showPencilDropdown, setShowPencilDropdown] = useState(null);
-  
+
   // Add state for token-specific landlord info 
   const [tokenLandlordInfo, setTokenLandlordInfo] = useState(null);
   const [isLoadingTokenInfo, setIsLoadingTokenInfo] = useState(true);
@@ -94,7 +94,10 @@ export default function Page({ params }) {
   const timerRef = useRef(null);
   const recordingChunks = useRef([]);
   const recordingTimerRef = useRef(null);
-  
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [videoPanX, setVideoPanX] = useState(0);
+  const [videoPanY, setVideoPanY] = useState(0);
+
   const { handleDisconnect, isConnected, screenshots, takeScreenshot, startPeerConnection, deleteScreenshot } = useWebRTC(true, id, videoRef);
   const { setResetOpen, setMessageOpen, setLandlordDialogOpen, setTickerOpen, setInviteOpen, setFeedbackOpen, setFaqOpen } = useDialog();
   const { user, isAuth, setIsAuth, setUser } = useUser();
@@ -108,6 +111,92 @@ export default function Page({ params }) {
     });
   };
 
+  const handleZoomIn = () => {
+    setZoomLevel(prev => {
+      const newZoom = Math.min(prev + 0.25, 3); // Max zoom 3x
+      console.log('Zooming in to:', newZoom);
+      return newZoom;
+    });
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => {
+      const newZoom = Math.max(prev - 0.25, 0.5); // Min zoom 0.5x
+      console.log('Zooming out to:', newZoom);
+
+      // Reset pan when zooming out to 1x
+      if (newZoom <= 1) {
+        setVideoPanX(0);
+        setVideoPanY(0);
+      }
+
+      return newZoom;
+    });
+  };
+
+  const handleZoomReset = () => {
+    setZoomLevel(1);
+    setVideoPanX(0);
+    setVideoPanY(0);
+    console.log('Zoom reset to 1x');
+  };
+
+  // Add pan functionality for when zoomed in
+  const handleVideoPan = (e) => {
+    if (zoomLevel <= 1) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Calculate pan offset based on mouse position
+    const panX = (centerX - mouseX) * 0.5;
+    const panY = (centerY - mouseY) * 0.5;
+
+    setVideoPanX(panX);
+    setVideoPanY(panY);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only handle zoom shortcuts when not in input fields
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case '=':
+          case '+':
+            e.preventDefault();
+            handleZoomIn();
+            break;
+          case '-':
+            e.preventDefault();
+            handleZoomOut();
+            break;
+          case '0':
+            e.preventDefault();
+            handleZoomReset();
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Optional: Reset zoom when video connection changes
+  useEffect(() => {
+    if (!isConnected) {
+      setZoomLevel(1);
+      setVideoPanX(0);
+      setVideoPanY(0);
+    }
+  }, [isConnected]);
+
   // Add new function to handle "End Video and Save Images"
   const handleEndVideoAndSave = async (e) => {
     // Prevent form submission and page refresh
@@ -115,28 +204,28 @@ export default function Page({ params }) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     try {
       console.log('🎬 Starting End Video and Save process...');
-      
+
       // First disconnect the video call
       if (isConnected) {
         handleDisconnect();
       }
-      
+
       // Stop any ongoing recording
       if (isRecording) {
         stopScreenRecording();
       }
-      
+
       // Wait a moment for any final recording to process
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Now save everything
       await handleSave(e);
-      
+
       toast.success("Video ended and all content saved successfully!");
-      
+
     } catch (error) {
       console.error('❌ End Video and Save failed:', error);
       toast.error("Failed to end video and save content", {
@@ -151,44 +240,20 @@ export default function Page({ params }) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     try {
       console.log('💾 Starting save process...');
-      
+
       // Separate new recordings from existing ones
       const newRecordings = recordings.filter(recording => !recording.isExisting && recording.blob);
       const existingRecordings = recordings.filter(recording => recording.isExisting);
-      
-      // Prepare NEW screenshots data for upload (no drawing logic)
-      const screenshotsData = [];
-      for (let i = 0; i < screenshots.length; i++) {
-        const screenshot = screenshots[i];
-        
-        console.log(`📸 Processing NEW screenshot ${i + 1}/${screenshots.length}...`);
-        
-        try {
-          screenshotsData.push({
-            data: screenshot,
-            timestamp: new Date().toISOString(),
-            size: screenshot.length
-          });
-          console.log(`✅ NEW screenshot ${i + 1} processed successfully`);
-        } catch (error) {
-          console.error(`❌ Error processing NEW screenshot ${i + 1}:`, error);
-          screenshotsData.push({
-            data: screenshot,
-            timestamp: new Date().toISOString(),
-            size: screenshot.length
-          });
-        }
-      }
 
-      // Prepare NEW recordings data for upload only
+      // Prepare NEW recordings data for upload
       const recordingsData = [];
       for (let i = 0; i < newRecordings.length; i++) {
         const recording = newRecordings[i];
         console.log(`🎥 Processing NEW recording ${i + 1}/${newRecordings.length}...`);
-        
+
         try {
           const base64Data = await blobToBase64(recording.blob);
           recordingsData.push({
@@ -200,6 +265,41 @@ export default function Page({ params }) {
           console.log(`✅ NEW recording ${i + 1} processed successfully`);
         } catch (error) {
           console.error(`❌ Error processing NEW recording ${i + 1}:`, error);
+        }
+      }
+
+      // Prepare NEW screenshots data for upload WITH high-quality drawing merge
+      const screenshotsData = [];
+      for (let i = 0; i < screenshots.length; i++) {
+        const screenshot = screenshots[i];
+
+        console.log(`📸 Processing NEW screenshot ${i + 1}/${screenshots.length}...`);
+
+        try {
+          let finalScreenshotData = screenshot;
+          const canvasId = `new-${i}`;
+
+          // If this screenshot has drawings, merge them at full resolution
+          if (drawingData[canvasId]) {
+            console.log(`🎨 Merging drawings for screenshot ${i + 1}...`);
+            finalScreenshotData = await mergeWithBackground(screenshot, canvasId);
+            console.log(`✅ Drawing merge completed for screenshot ${i + 1}`);
+          }
+
+          screenshotsData.push({
+            data: finalScreenshotData,
+            timestamp: new Date().toISOString(),
+            size: finalScreenshotData.length
+          });
+          console.log(`✅ NEW screenshot ${i + 1} processed successfully`);
+        } catch (error) {
+          console.error(`❌ Error processing NEW screenshot ${i + 1}:`, error);
+          // Fallback to original screenshot if merge fails
+          screenshotsData.push({
+            data: screenshot,
+            timestamp: new Date().toISOString(),
+            size: screenshot.length
+          });
         }
       }
 
@@ -226,20 +326,20 @@ export default function Page({ params }) {
       });
 
       const response = await createRequest(formData);
-      
+
       console.log('✅ Save successful!');
-      
+
       toast.success("Repair saved successfully!", {
         description: `Added ${recordingsData.length} new recordings and ${screenshotsData.length} new screenshots.`
       });
-      
-      // Reset pencil mode (UI only)
+
+      // Reset pencil mode and clear all drawing data
       setActivePencilScreenshot(null);
-      
+
       // Update recordings state to mark all recordings as existing/saved
       setRecordings(prev => prev.map(rec => ({
         ...rec,
-        isExisting: true // Mark all recordings as saved
+        isExisting: true
       })));
 
       // Move all new screenshots to existing screenshots and mark them as saved
@@ -250,11 +350,15 @@ export default function Page({ params }) {
           timestamp: new Date(screenshot.timestamp).toLocaleString(),
           isExisting: true
         }));
-        
+
         setExistingScreenshots(prev => [...prev, ...newSavedScreenshots]);
-        
-        // Clear the new screenshots array since they're now saved
-        // Note: This would require updating the useWebRTC hook to clear screenshots
+
+        // 🔧 FIX: Clear all screenshots from useWebRTC after saving
+        const screenshotCount = screenshots.length;
+        for (let i = screenshotCount - 1; i >= 0; i--) {
+          deleteScreenshot(i);
+        }
+        console.log(`🧹 Cleared ${screenshotCount} screenshots from new screenshots array`);
       }
 
       // Update existing meeting data reference
@@ -275,8 +379,7 @@ export default function Page({ params }) {
         description: error?.response?.data?.message || error.message
       });
     }
-  }
-
+  };
 
 
   const handleLogout = async () => {
@@ -304,11 +407,11 @@ export default function Page({ params }) {
   // Simple timer effect that doesn't interfere with WebRTC - with localStorage persistence
   useEffect(() => {
     if (!isClient) return;
-    
+
     // Load saved timer data from localStorage on component mount
     const savedStartTime = localStorage.getItem(`call-start-time-${id}`);
     const savedDuration = localStorage.getItem(`call-duration-${id}`);
-    
+
     if (isConnected && !startTimeRef.current) {
       // If there's saved data and we're reconnecting, restore it
       if (savedStartTime) {
@@ -324,7 +427,7 @@ export default function Page({ params }) {
         localStorage.setItem(`call-start-time-${id}`, startTime.toString());
         console.log('Started new call timer');
       }
-      
+
       timerRef.current = setInterval(() => {
         const currentDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
         setCallDuration(currentDuration);
@@ -332,7 +435,7 @@ export default function Page({ params }) {
         localStorage.setItem(`call-duration-${id}`, currentDuration.toString());
       }, 1000);
     }
-    
+
     if (!isConnected && timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -343,7 +446,7 @@ export default function Page({ params }) {
       localStorage.removeItem(`call-duration-${id}`);
       console.log('Call ended, cleared timer from localStorage');
     }
-    
+
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -354,10 +457,10 @@ export default function Page({ params }) {
   // Load saved duration on component mount (for page refresh scenarios)
   useEffect(() => {
     if (!isClient) return;
-    
+
     const savedDuration = localStorage.getItem(`call-duration-${id}`);
     const savedStartTime = localStorage.getItem(`call-start-time-${id}`);
-    
+
     if (savedDuration && savedStartTime && !isConnected) {
       // If we have saved data but not connected, show the last known duration
       const duration = parseInt(savedDuration);
@@ -422,32 +525,32 @@ export default function Page({ params }) {
       }
 
       const stream = videoRef.current.srcObject;
-      
+
       setRecordingStream(stream);
-      
+
       // Create MediaRecorder with higher quality settings
       const recorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp9',
         videoBitsPerSecond: 5000000, // Increased to 5 Mbps for higher quality
         audioBitsPerSecond: 128000   // Add audio bitrate for better audio quality
       });
-      
+
       // Reset chunks
       recordingChunks.current = [];
-      
+
       // Handle data available event - record in smaller chunks for better quality
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           recordingChunks.current.push(event.data);
         }
       };
-      
+
       // Handle recording stop event
       recorder.onstop = () => {
         // Calculate final duration
         const endTime = Date.now();
         const duration = Math.floor((endTime - startTime) / 1000);
-        
+
         // Restore video controls after recording
         if (videoRef.current) {
           videoRef.current.style.pointerEvents = 'auto';
@@ -455,7 +558,7 @@ export default function Page({ params }) {
 
         const blob = new Blob(recordingChunks.current, { type: 'video/webm' });
         const videoUrl = URL.createObjectURL(blob);
-        
+
         const newRecording = {
           id: Date.now(),
           url: videoUrl,
@@ -463,18 +566,18 @@ export default function Page({ params }) {
           timestamp: new Date().toLocaleString(),
           duration: duration
         };
-        
+
         setRecordings(prev => [...prev, newRecording]);
         setIsRecording(false);
         setRecordingStartTime(null);
       };
-      
+
       setMediaRecorder(recorder);
       // Start recording with timeslice for better quality chunks
       recorder.start(1000); // Record in 1 second chunks
       setIsRecording(true);
       toast('Video recording started');
-      
+
     } catch (error) {
       console.error('Error starting video recording:', error);
       // Fallback to webm if vp9 not supported
@@ -482,39 +585,39 @@ export default function Page({ params }) {
         const stream = videoRef.current.srcObject;
         const startTime = Date.now();
         setRecordingStartTime(startTime);
-        
+
         const recorder = new MediaRecorder(stream, {
           mimeType: 'video/webm',
           videoBitsPerSecond: 3000000, // Higher fallback quality
           audioBitsPerSecond: 128000
         });
-        
+
         // Hide controls
         if (videoRef.current) {
           videoRef.current.controls = false;
           videoRef.current.style.pointerEvents = 'none';
         }
-        
+
         // Reset chunks
         recordingChunks.current = [];
-        
+
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             recordingChunks.current.push(event.data);
           }
         };
-        
+
         recorder.onstop = () => {
           const endTime = Date.now();
           const duration = Math.floor((endTime - startTime) / 1000);
-          
+
           if (videoRef.current) {
             videoRef.current.style.pointerEvents = 'auto';
           }
-          
+
           const blob = new Blob(recordingChunks.current, { type: 'video/webm' });
           const videoUrl = URL.createObjectURL(blob);
-          
+
           const newRecording = {
             id: Date.now(),
             url: videoUrl,
@@ -522,12 +625,12 @@ export default function Page({ params }) {
             timestamp: new Date().toLocaleString(),
             duration: duration
           };
-          
+
           setRecordings(prev => [...prev, newRecording]);
           setIsRecording(false);
           setRecordingStartTime(null);
         };
-        
+
         setMediaRecorder(recorder);
         recorder.start(1000);
         setIsRecording(true);
@@ -538,7 +641,7 @@ export default function Page({ params }) {
       }
     }
   };
-  
+
   const stopScreenRecording = () => {
     if (mediaRecorder && mediaRecorder.state === 'recording') {
       mediaRecorder.stop();
@@ -549,7 +652,7 @@ export default function Page({ params }) {
       toast('Recording stopped');
     }
   };
-  
+
   const handleRecordingToggle = () => {
     if (isRecording) {
       stopScreenRecording();
@@ -557,17 +660,17 @@ export default function Page({ params }) {
       startScreenRecording();
     }
   };
-  
+
   // Updated delete recording function
   const deleteRecording = async (recording) => {
     try {
       if (recording.isExisting) {
         // Send delete request to backend for existing recordings
         console.log(`🗑️ Deleting existing recording ${recording.id} from meeting ${id}`);
-        
+
         try {
           const response = await deleteRecordingRequest(id, recording.id);
-          
+
           if (response.data.timeout) {
             toast.success("Recording deletion requested (processing in background)");
           } else {
@@ -582,7 +685,7 @@ export default function Page({ params }) {
         // Local deletion for new recordings (not yet saved)
         console.log(`🗑️ Deleting local recording ${recording.id}`);
       }
-      
+
       // Always remove from state regardless of API success
       setRecordings(prev => {
         const recordingToDelete = prev.find(r => r.id === recording.id);
@@ -591,7 +694,7 @@ export default function Page({ params }) {
         }
         return prev.filter(r => r.id !== recording.id);
       });
-      
+
       if (!recording.isExisting) {
         toast.success("Recording removed!");
       }
@@ -602,19 +705,19 @@ export default function Page({ params }) {
       });
     }
   };
-  
+
   // Delete existing screenshot function
   const deleteExistingScreenshot = async (screenshot) => {
     try {
       console.log(`🗑️ Deleting existing screenshot ${screenshot.id} from meeting ${id}`);
       const response = await deleteScreenshotRequest(id, screenshot.id);
-      
+
       if (response.data.timeout) {
         toast.success("Screenshot deletion requested (processing in background)");
       } else {
         toast.success("Screenshot deleted successfully!");
       }
-      
+
       // Remove from existing screenshots state immediately
       setExistingScreenshots(prev => prev.filter(s => s.id !== screenshot.id));
     } catch (error) {
@@ -624,7 +727,7 @@ export default function Page({ params }) {
       });
     }
   };
-  
+
   // Local screenshot delete function (for new screenshots from useWebRTC)
   const deleteNewScreenshot = (screenshotIndex) => {
     try {
@@ -638,36 +741,74 @@ export default function Page({ params }) {
   };
 
   // Pencil tool functions - Memoize to prevent re-renders
-  const handlePencilClick = useCallback((screenshotIndex) => {
-    if (activePencilScreenshot === screenshotIndex) {
+  // Fixed Pencil tool functions
+  const handlePencilClick = useCallback((canvasId) => {
+    console.log('handlePencilClick called with:', canvasId);
+    console.log('Current activePencilScreenshot:', activePencilScreenshot);
+    console.log('Current showPencilDropdown:', showPencilDropdown);
+
+    if (activePencilScreenshot === canvasId && showPencilDropdown === canvasId) {
+      // Close if already open
+      console.log('Closing pencil dropdown');
       setActivePencilScreenshot(null);
       setShowPencilDropdown(null);
     } else {
-      setActivePencilScreenshot(screenshotIndex);
-      setShowPencilDropdown(screenshotIndex);
+      // Open for this canvas
+      console.log('Opening pencil dropdown for:', canvasId);
+      setActivePencilScreenshot(canvasId);
+      setShowPencilDropdown(canvasId);
     }
-  }, [activePencilScreenshot]);
+  }, [activePencilScreenshot, showPencilDropdown]);
 
-  const handleColorSelect = useCallback((color) => {
-    setSelectedColor(color);
-  }, [setSelectedColor]);
-
-  const handleToolSelect = useCallback((tool) => {
-    setSelectedTool(tool);
-  }, [setSelectedTool]);
-
-  // Clear canvas function - Memoize to prevent re-renders
-  const clearCanvas = useCallback((screenshotIndex) => {
-    const canvasId = screenshotIndex;
+  // Updated clear canvas function
+  const clearCanvas = useCallback((canvasId) => {
+    console.log('Clearing canvas:', canvasId);
     clearDrawingCanvas(canvasId);
     toast.info("Canvas cleared");
   }, [clearDrawingCanvas]);
 
+  // Add effect to close dropdown when clicking outside (updated)
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showPencilDropdown &&
+        !event.target.closest('.pencil-dropdown-container') &&
+        !event.target.closest('[data-canvas-id]')) {
+        console.log('Clicking outside, closing dropdown');
+        setShowPencilDropdown(null);
+        setActivePencilScreenshot(null);
+      }
+    };
+
+    if (showPencilDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showPencilDropdown]);
+
+  const handleColorSelect = useCallback((color) => {
+    setSelectedColor(color);
+
+    // Immediate visual feedback - update any active canvas context
+    if (contextRef?.current) {
+      contextRef.current.strokeStyle = color;
+    }
+
+    console.log('Color changed to:', color); // Debug log
+  }, [setSelectedColor]);
+
+  const handleToolSelect = useCallback((tool) => {
+    setSelectedTool(tool);
+    console.log('Tool changed to:', tool); // Debug log
+  }, [setSelectedTool]);
+
+  // Clear canvas function - Memoize to prevent re-renders
+  // (Removed duplicate clearCanvas declaration to fix redeclaration error)
+
   // Add effect to close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showPencilDropdown && 
-          !event.target.closest('.pencil-dropdown-container')) {
+      if (showPencilDropdown &&
+        !event.target.closest('.pencil-dropdown-container')) {
         setShowPencilDropdown(null);
       }
     };
@@ -679,24 +820,24 @@ export default function Page({ params }) {
   // Add effect to fetch existing meeting data when component mounts
   useEffect(() => {
     if (!isClient || !id) return;
-    
+
     const fetchExistingMeetingData = async () => {
       setIsLoadingMeetingData(true);
       try {
         console.log('🔍 Fetching existing meeting data for ID:', id);
         const response = await getMeetingByMeetingId(id);
-        
+
         if (response.data.success && response.data.meeting) {
           const meetingData = response.data.meeting;
           console.log('✅ Found existing meeting data:', meetingData);
-          
+
           // Pre-populate form fields with existing data
           setResidentName(meetingData.name || "");
           setResidentAddress(meetingData.address || "");
           setPostCode(meetingData.post_code || "");
           setRepairDetails(meetingData.repair_detail || "");
           setTargetTime(meetingData.target_time || "Emergency 24 Hours");
-          
+
           // Store existing recordings
           if (meetingData.recordings && meetingData.recordings.length > 0) {
             const existingRecordings = meetingData.recordings.map(rec => ({
@@ -709,7 +850,7 @@ export default function Page({ params }) {
             }));
             setRecordings(existingRecordings);
           }
-          
+
           // Store existing screenshots
           if (meetingData.screenshots && meetingData.screenshots.length > 0) {
             const existingScreenshotsData = meetingData.screenshots.map(screenshot => ({
@@ -721,9 +862,9 @@ export default function Page({ params }) {
             setExistingScreenshots(existingScreenshotsData);
             console.log('📸 Loaded existing screenshots:', existingScreenshotsData.length);
           }
-          
+
           setExistingMeetingData(meetingData);
-          
+
           toast.success("Meeting data loaded successfully!", {
             description: `Found ${meetingData.recordings?.length || 0} recordings and ${meetingData.screenshots?.length || 0} screenshots`
           });
@@ -758,7 +899,7 @@ export default function Page({ params }) {
 
     try {
       console.log('💾 Saving individual recording...');
-      
+
       const base64Data = await blobToBase64(recording.blob);
       const recordingsData = [{
         data: base64Data,
@@ -780,16 +921,16 @@ export default function Page({ params }) {
       };
 
       const response = await createRequest(formData);
-      
+
       // Update the recording to mark it as existing
-      setRecordings(prev => prev.map(r => 
+      setRecordings(prev => prev.map(r =>
         r.id === recording.id
           ? { ...r, isExisting: true }
           : r
       ));
 
       toast.success("Recording saved successfully!");
-      
+
     } catch (error) {
       console.error('❌ Save recording failed:', error);
       toast.error("Failed to save recording");
@@ -799,22 +940,17 @@ export default function Page({ params }) {
   const saveIndividualScreenshot = useCallback(async (screenshotData, index) => {
     try {
       console.log('💾 Saving individual screenshot...');
-      
+
       let finalScreenshotData = screenshotData;
-      const canvasId = `new-${index}`; // This matches the canvas ID used in the component
-      
-      // Check if this screenshot has drawings and merge them
-      console.log('🎨 Checking for drawings on canvas:', canvasId);
-      console.log('📊 Available drawing data:', Object.keys(drawingData));
-      
+      const canvasId = `new-${index}`;
+
+      // Check if this screenshot has drawings and merge them at full resolution
       if (drawingData[canvasId]) {
-        console.log('✏️ Found drawings, merging with background...');
+        console.log('🎨 Merging drawings with screenshot at full resolution...');
         finalScreenshotData = await mergeWithBackground(screenshotData, canvasId);
-        console.log('✅ Successfully merged drawing with background');
-      } else {
-        console.log('ℹ️ No drawings found for this screenshot');
+        console.log('✅ Drawing merge completed');
       }
-      
+
       const screenshotsData = [{
         data: finalScreenshotData,
         timestamp: new Date().toISOString(),
@@ -834,31 +970,33 @@ export default function Page({ params }) {
       };
 
       const response = await createRequest(formData);
-      
+
       toast.success("Screenshot saved successfully!");
-      
-      // Clear pencil mode
+
+      // Clear pencil mode and drawing data
       setActivePencilScreenshot(null);
       setShowPencilDropdown(null);
-      
-      // Move the saved screenshot to existing screenshots
+
+      // 🔧 FIX: Add saved screenshot to existing screenshots
       const newSavedScreenshot = {
         id: `saved-${Date.now()}-${index}`,
         url: finalScreenshotData,
         timestamp: new Date().toLocaleString(),
         isExisting: true
       };
-      
+
       setExistingScreenshots(prev => [...prev, newSavedScreenshot]);
-      
-      // Remove from new screenshots (this would need to be implemented in useWebRTC)
-      deleteNewScreenshot(index);
-      
+
+      // 🔧 FIX: Remove the screenshot from new screenshots array
+      deleteScreenshot(index);
+      console.log(`🧹 Removed screenshot at index ${index} from new screenshots array`);
+
     } catch (error) {
       console.error('❌ Save screenshot failed:', error);
       toast.error("Failed to save screenshot");
     }
-  }, [id, residentName, residentAddress, postCode, repairDetails, targetTime, existingMeetingData, drawingData, mergeWithBackground, deleteNewScreenshot]);
+  }, [id, residentName, residentAddress, postCode, repairDetails, targetTime, existingMeetingData, drawingData, mergeWithBackground, deleteScreenshot]);
+
 
   // Maximize handlers - Memoize these functions
   const maximizeVideo = useCallback((recording) => {
@@ -902,7 +1040,7 @@ export default function Page({ params }) {
     }
     return user?.landlordInfo?.landlordName || null;
   };
-  
+
 
   // Helper function to get landlord logo (prioritize token info)
   const getLandlordLogo = () => {
@@ -921,20 +1059,20 @@ export default function Page({ params }) {
     if (tokenLandlordInfo?.profileImage && isValidImageUrl(tokenLandlordInfo.profileImage)) {
       return tokenLandlordInfo.profileImage;
     }
-    
+
     // Fallback to current user info
     if (user?.landlordInfo?.useLandlordLogoAsProfile && user?.landlordInfo?.landlordLogo) {
       if (isValidImageUrl(user.landlordInfo.landlordLogo)) {
         return user.landlordInfo.landlordLogo;
       }
     }
-    
+
     if (user?.landlordInfo?.officerImage) {
       if (isValidImageUrl(user.landlordInfo.officerImage)) {
         return user.landlordInfo.officerImage;
       }
     }
-    
+
     return null;
   };
 
@@ -951,19 +1089,19 @@ export default function Page({ params }) {
     if (landlordName) {
       return landlordName;
     }
-    
+
     // Fallback to username from email
     if (user?.email) {
       return user.email.split('@')[0];
     }
-    
+
     return 'User';
   };
 
   // Helper function to get initials
   const getInitials = (name) => {
     if (!name) return 'U';
-    
+
     const words = name.trim().split(' ').filter(word => word.length > 0);
     if (words.length === 1) {
       return words[0].charAt(0).toUpperCase();
@@ -1015,37 +1153,6 @@ export default function Page({ params }) {
     );
   }
 
-  // Add function to handle time update and track progress
-  const handleTimeUpdate = (recordingId, e) => {
-    const video = e.target;
-    if (video.duration) {
-      const progress = (video.currentTime / video.duration) * 100;
-      setVideoProgress(prev => ({
-        ...prev,
-        [recordingId]: progress
-      }));
-    }
-  };
-  
-  // Add function to handle seeking when clicking on the progress bar
-  const handleSeek = (recordingId, e) => {
-    e.stopPropagation(); // Prevent video play/pause
-    
-    const progressBar = e.currentTarget;
-    const rect = progressBar.getBoundingClientRect();
-    const clickPosition = e.clientX - rect.left;
-    const percentage = clickPosition / rect.width;
-    
-    // Find the video element
-    const videoContainer = document.querySelector(`[data-recording-id="${recordingId}"]`);
-    if (videoContainer) {
-      const video = videoContainer.querySelector('video');
-      if (video && video.duration) {
-        video.currentTime = video.duration * percentage;
-      }
-    }
-  };
-  
   return (
     <div className="max-w-6xl mx-auto p-4 py-10 font-sans">
       {/* Maximized Item Modal */}
@@ -1064,15 +1171,15 @@ export default function Page({ params }) {
             {maximizedItem.type === 'video' && (
               <video
                 src={maximizedItem.data.url}
-                controls
-                autoPlay
+                controls={true}
+                autoPlay={false}
+                muted={false}
                 className="max-w-full max-h-full w-auto h-auto object-contain"
                 style={{
                   maxWidth: '95vw',
                   maxHeight: '95vh'
                 }}
                 onLoadedMetadata={(e) => {
-                  // Video will automatically size based on its actual resolution
                   console.log('Video resolution:', e.target.videoWidth, 'x', e.target.videoHeight);
                 }}
               />
@@ -1106,7 +1213,7 @@ export default function Page({ params }) {
             <div className="flex items-center gap-4 mb-6">
               <div className="flex items-center">
                 <a href="/" className="text-2xl font-bold text-gray-900 flex items-center">
-                  <VideoIcon className="mr-2"/>
+                  <VideoIcon className="mr-2" />
                   <span> Videodesk.co.uk</span>
                 </a>
               </div>
@@ -1141,23 +1248,46 @@ export default function Page({ params }) {
             {/* Live Video */}
             <div className="relative w-[270px]">
               <div className="h-[480px] w-[270px] bg-gray-200 rounded-md overflow-hidden relative">
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  playsInline 
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
                   controls={false}
-                  className="w-full h-full object-contain absolute top-0 left-0" 
+                  className="w-full h-full object-contain absolute top-0 left-0 transition-transform duration-300 ease-out"
                   style={{
+                    // Apply zoom and pan transformations
+                    transform: `scale(${zoomLevel}) translate(${videoPanX}px, ${videoPanY}px)`,
+                    transformOrigin: 'center center',
                     // Hide all video controls and UI elements during recording
                     ...(isRecording && {
                       pointerEvents: 'none',
                       outline: 'none',
                       border: 'none'
+                    }),
+                    // Enable panning when zoomed in
+                    ...(zoomLevel > 1 && !isRecording && {
+                      cursor: 'grab'
                     })
+                  }}
+                  onMouseMove={handleVideoPan}
+                  onMouseDown={(e) => {
+                    if (zoomLevel > 1) {
+                      e.currentTarget.style.cursor = 'grabbing';
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    if (zoomLevel > 1) {
+                      e.currentTarget.style.cursor = 'grab';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (zoomLevel > 1) {
+                      e.currentTarget.style.cursor = 'grab';
+                    }
                   }}
                 />
               </div>
-              
+
               {/* Recording Timer Overlay - Shows during recording */}
               {isRecording && (
                 <div className="absolute top-2 left-2 bg-red-600 text-white px-3 py-1 text-sm font-medium flex items-center gap-2 rounded-md">
@@ -1165,14 +1295,14 @@ export default function Page({ params }) {
                   <span>REC {formatRecordingTime(currentRecordingDuration)}</span>
                 </div>
               )}
-              
-              <div 
+
+              <div
                 className="absolute top-2 left-2 bg-red-600 text-white px-3 py-1 text-sm font-medium"
                 style={{ display: isRecording ? 'none' : 'block' }}
               >
                 {isConnected ? "Live" : "Disconnected"}
               </div>
-              <div 
+              <div
                 className="absolute bottom-2 left-[50%] -translate-x-[50%] text-white px-3 py-1 text-sm font-medium flex items-center gap-3"
                 style={{ display: isRecording ? 'none' : 'flex' }}
               >
@@ -1180,28 +1310,47 @@ export default function Page({ params }) {
                 <span className="text-white text-lg">{isConnected ? formatTime(callDuration) : "0:00"}</span>
               </div>
 
-              <div 
+              <div
                 className="absolute bottom-2 right-0 text-white px-3 py-1 text-sm font-medium flex items-center gap-3 flex-col"
                 style={{ display: isRecording ? 'none' : 'flex' }}
               >
-                <button className="p-1 rounded text-white cursor-pointer">
-                  <ZoomIn className="w-4 h-4" />
+                <button
+                  className="p-1 rounded text-white cursor-pointer hover:bg-black/20 transition-colors"
+                  onClick={handleZoomIn}
+                  disabled={zoomLevel >= 3}
+                  title={`Zoom In (${Math.round(zoomLevel * 100)}%)`}
+                >
+                  <ZoomIn className={`w-4 h-4 ${zoomLevel >= 3 ? 'opacity-50' : ''}`} />
                 </button>
-                <button className="p-1 rounded text-white cursor-pointer">
-                  <ZoomOut className="w-4 h-4" />
+
+                {/* Zoom level indicator - clickable to reset */}
+                <button
+                  className="text-xs bg-black/30 px-2 py-1 rounded hover:bg-black/50 transition-colors"
+                  onClick={handleZoomReset}
+                  title="Click to reset zoom"
+                >
+                  {Math.round(zoomLevel * 100)}%
+                </button>
+
+                <button
+                  className="p-1 rounded text-white cursor-pointer hover:bg-black/20 transition-colors"
+                  onClick={handleZoomOut}
+                  disabled={zoomLevel <= 0.5}
+                  title={`Zoom Out (${Math.round(zoomLevel * 100)}%)`}
+                >
+                  <ZoomOut className={`w-4 h-4 ${zoomLevel <= 0.5 ? 'opacity-50' : ''}`} />
                 </button>
               </div>
             </div>
 
             <div className="w-[270px] flex gap-2 mt-2">
-              <button 
+              <button
                 onClick={handleRecordingToggle}
-                disabled={!isConnected} 
-                className={`disabled:opacity-50 flex items-center justify-center gap-2 font-medium py-4 rounded-md transition-colors flex-1 ${
-                  isRecording 
-                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                    : 'bg-green-500 hover:bg-green-600 text-white'
-                }`}
+                disabled={!isConnected}
+                className={`disabled:opacity-50 flex items-center justify-center gap-2 font-medium py-4 rounded-md transition-colors flex-1 ${isRecording
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
               >
                 <span className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
                   <span className={`w-3 h-3 rounded-full ${isRecording ? 'bg-red-500' : 'bg-green-500'}`}></span>
@@ -1240,11 +1389,11 @@ export default function Page({ params }) {
                 {recordings.length === 0 && (
                   <h1>No recordings</h1>
                 )}
-                
+
                 {recordings.map((recording) => (
                   <div key={recording.id} className="relative group">
                     <img src="/icons/ci_label.svg" className="mb-2" />
-                    <div 
+                    <div
                       data-recording-id={recording.id}
                       className="aspect-square bg-gray-200 rounded-md overflow-hidden relative cursor-pointer"
                       onClick={(e) => {
@@ -1257,8 +1406,8 @@ export default function Page({ params }) {
                       }}>
                       <video
                         src={recording.url}
-                        controls={false}
-                        muted
+                        controls={true}
+                        muted={false}
                         className="w-full h-full object-cover"
                         onPlay={() => setPlayingVideos(prev => new Set(prev).add(recording.id))}
                         onPause={() => setPlayingVideos(prev => {
@@ -1266,52 +1415,11 @@ export default function Page({ params }) {
                           newSet.delete(recording.id);
                           return newSet;
                         })}
-                        onTimeUpdate={(e) => handleTimeUpdate(recording.id, e)}
                       />
-                      
-                      {/* Play icon - always visible on container */}
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                        <PlayIcon className="w-8 h-8 text-white/80 drop-shadow-md filter" />
-                      </div>
-                      
-                      {/* Progress bar at the bottom */}
-                      <div 
-                        className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-800 bg-opacity-50 cursor-pointer z-20"
-                        onClick={(e) => handleSeek(recording.id, e)}
-                      >
-                        <div 
-                          className="h-full bg-white" 
-                          style={{ 
-                            width: `${videoProgress[recording.id] || 0}%`,
-                            transition: 'width 0.1s ease-out' // Add smooth animation
-                          }}
-                        ></div>
-                      </div>
 
-                      {/* Minimize/Maximize icons at top right corner, horizontal alignment */}
-                      <div className="absolute top-2 right-2 flex flex-row gap-1 z-10">
-                        <button 
-                          className="p-1 hover:bg-black/20 rounded text-white"
-                          title="Minimize"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Minimize2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          className="p-1 hover:bg-black/20 rounded text-white"
-                          title="Maximize"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            maximizeVideo(recording);
-                          }}
-                        >
-                          <Expand className="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-                      {/* Action icons moved to bottom right corner, vertical alignment */}
-                      <div className="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
-                        <button 
+                      {/* Action icons moved to top left corner, vertical alignment */}
+                      <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             saveIndividualRecording(recording);
@@ -1322,7 +1430,7 @@ export default function Page({ params }) {
                         >
                           <Save className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             deleteRecording(recording);
@@ -1331,6 +1439,27 @@ export default function Page({ params }) {
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Minimize/Maximize icons at top right corner, horizontal alignment */}
+                      <div className="absolute top-2 right-2 flex flex-row gap-1 z-10">
+                        <button
+                          className="p-1 hover:bg-black/20 rounded text-white"
+                          title="Minimize"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Minimize2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="p-1 hover:bg-black/20 rounded text-white"
+                          title="Maximize"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            maximizeVideo(recording);
+                          }}
+                        >
+                          <Expand className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -1342,12 +1471,12 @@ export default function Page({ params }) {
             {/* Image Screenshot Section */}
             <div>
               <h2 className="text-lg font-medium mb-3">Image screenshot :</h2>
-              <div className="grid grid-cols-2 gap-3">
-                {
-                  (existingScreenshots.length === 0 && screenshots.length === 0) && (
-                    <h1>No screenshots</h1>
-                  )
-                }
+
+              {/* Grid with overflow-visible to allow dropdown to show */}
+              <div className="grid grid-cols-2 gap-3 overflow-visible">
+                {(existingScreenshots.length === 0 && screenshots.length === 0) && (
+                  <h1>No screenshots</h1>
+                )}
 
                 {/* Render existing screenshots first */}
                 {existingScreenshots.map((screenshot, index) => (
@@ -1358,14 +1487,14 @@ export default function Page({ params }) {
                         <button className="p-1 hover:bg-black/20 rounded text-white">
                           <Minimize2 className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           className="p-1 hover:bg-black/20 rounded text-white"
                           onClick={() => maximizeScreenshot(screenshot, index, true)}
                         >
                           <Expand className="w-4 h-4" />
                         </button>
                       </div>
-                      
+
                       {/* Action icons for existing screenshots */}
                       <div className="absolute bottom-2 right-2 flex flex-col gap-1 z-10">
                         <button className="p-1 hover:bg-black/20 rounded text-white opacity-50" disabled>
@@ -1374,7 +1503,7 @@ export default function Page({ params }) {
                         <button className="p-1 hover:bg-black/20 rounded text-white opacity-50" disabled title="Already saved">
                           <Save className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => deleteExistingScreenshot(screenshot)}
                           className="p-1 hover:bg-black/20 rounded text-white"
                           title="Delete screenshot"
@@ -1382,164 +1511,278 @@ export default function Page({ params }) {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      
+
                       {/* Existing Screenshot Image */}
                       <img
                         src={screenshot.url}
                         alt="existing screenshot"
-                        className="w-full h-full object-cover absolute top-0 left-0 z-0 rounded-md"
+                        className="w-full h-full object-fill absolute top-0 left-0 z-0 rounded-md"
                       />
                     </div>
                   </div>
                 ))}
 
-                {/* Render new screenshots from useWebRTC */}
-                {screenshots.map((screenshot, index) => (
-                  <div key={`new-${index}`} className="relative pencil-dropdown-container">
-                    <img src="/icons/ci_label.svg" className="mb-2" />
-                    <div className="aspect-square bg-gray-200 rounded-md overflow-hidden flex items-center justify-center relative">
-                      {/* Minimize/Maximize icons - ALWAYS visible now */}
-                      <div className="absolute top-2 right-2 flex flex-row gap-1 z-20">
-                        <button className="p-1 hover:bg-black/20 rounded text-white">
-                          <Minimize2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          className="p-1 hover:bg-black/20 rounded text-white"
-                          onClick={() => maximizeScreenshot(screenshot, index, false)}
-                        >
-                          <Expand className="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-                      {/* Action icons for new screenshots - Always visible, never hide */}
-                      <div className="absolute bottom-2 right-2 flex flex-col gap-1 z-20">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePencilClick(`new-${index}`);
-                          }}
-                          className={`p-1 hover:bg-black/20 rounded text-white ${activePencilScreenshot === `new-${index}` ? 'bg-blue-500' : ''}`}
-                          title="Drawing tools"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        
-                        <button 
-                          onClick={() => saveIndividualScreenshot(screenshot, index)}
-                          className="p-1 hover:bg-black/20 rounded text-white"
-                          title="Save screenshot"
-                        >
-                          <Save className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => deleteNewScreenshot(index)}
-                          className="p-1 hover:bg-black/20 rounded text-white"
-                          title="Delete screenshot"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-                      {/* New Screenshot Image */}
-                      <img
-                        src={screenshot}
-                        alt="new screenshot"
-                        className="w-full h-full object-cover absolute top-0 left-0 z-0 rounded-md"
-                      />
-                      
-                      {/* Canvas overlay for drawing */}
-                      {activePencilScreenshot === `new-${index}` && (
+                {/* Render new screenshots from useWebRTC with RIGHT DROPDOWN */}
+                {screenshots.map((screenshot, index) => {
+                  const canvasId = `new-${index}`;
+                  const isActive = activePencilScreenshot === canvasId;
+                  const shouldShowDropdown = showPencilDropdown === canvasId;
+
+                  return (
+                    <div key={canvasId} className="relative pencil-dropdown-container">
+                      <img src="/icons/ci_label.svg" className="mb-2" />
+                      <div className="aspect-square bg-gray-200 rounded-md overflow-visible flex items-center justify-center relative">
+                        {/* Minimize/Maximize icons */}
+                        <div className="absolute top-2 right-2 flex flex-row gap-1 z-20">
+                          <button className="p-1 hover:bg-black/20 rounded text-white">
+                            <Minimize2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="p-1 hover:bg-black/20 rounded text-white"
+                            onClick={() => maximizeScreenshot(screenshot, index, false)}
+                          >
+                            <Expand className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Action icons */}
+                        <div className="absolute bottom-2 right-2 flex flex-col gap-1 z-20">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('🖋️ Pencil clicked for:', canvasId);
+                              handlePencilClick(canvasId);
+                            }}
+                            className={`p-1 hover:bg-black/20 rounded text-white transition-colors border-2 ${isActive ? 'bg-blue-500 border-blue-300' : 'bg-black/10 border-transparent'
+                              }`}
+                            title="Drawing tools"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => saveIndividualScreenshot(screenshot, index)}
+                            className="p-1 hover:bg-black/20 rounded text-white"
+                            title="Save screenshot"
+                          >
+                            <Save className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteNewScreenshot(index)}
+                            className="p-1 hover:bg-black/20 rounded text-white"
+                            title="Delete screenshot"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Screenshot Image */}
+                        <img
+                          src={screenshot}
+                          alt="new screenshot"
+                          className="w-full h-full object-fill absolute top-0 left-0 z-0 rounded-md"
+                        />
+
+                        {/* ALWAYS VISIBLE Canvas for drawings */}
                         <canvas
+                          data-canvas-id={canvasId}
                           ref={(canvas) => {
-                            if (canvas && activePencilScreenshot === `new-${index}`) {
+                            if (canvas) {
                               canvas.setAttribute('data-background', screenshot);
-                              // Force save canvas state when initializing
-                              setTimeout(() => {
-                                initializeCanvas(canvas, screenshot, `new-${index}`);
-                              }, 100);
+                              initializeCanvas(canvas, screenshot, canvasId);
                             }
                           }}
-                          className="absolute top-0 left-0 w-full h-full z-10 cursor-crosshair"
-                          onMouseDown={startDrawing}
-                          onMouseMove={draw}
-                          onMouseUp={stopDrawing}
-                          onMouseLeave={stopDrawing}
+                          className={`absolute top-0 left-0 w-full h-full z-10 rounded-md ${isActive ? 'cursor-crosshair' : 'pointer-events-none'
+                            }`}
+                          onMouseDown={(e) => {
+                            if (isActive) {
+                              e.preventDefault();
+                              startDrawing(e);
+                            }
+                          }}
+                          onMouseMove={(e) => {
+                            if (isActive) {
+                              e.preventDefault();
+                              draw(e);
+                            }
+                          }}
+                          onMouseUp={(e) => {
+                            if (isActive) {
+                              e.preventDefault();
+                              stopDrawing(e);
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (isActive) {
+                              e.preventDefault();
+                              stopDrawing(e);
+                            }
+                          }}
+                          onTouchStart={(e) => {
+                            if (isActive) {
+                              e.preventDefault();
+                              const touch = e.touches[0];
+                              const mouseEvent = new MouseEvent('mousedown', {
+                                clientX: touch.clientX,
+                                clientY: touch.clientY
+                              });
+                              startDrawing(mouseEvent);
+                            }
+                          }}
+                          onTouchMove={(e) => {
+                            if (isActive) {
+                              e.preventDefault();
+                              const touch = e.touches[0];
+                              const mouseEvent = new MouseEvent('mousemove', {
+                                clientX: touch.clientX,
+                                clientY: touch.clientY
+                              });
+                              draw(mouseEvent);
+                            }
+                          }}
+                          onTouchEnd={(e) => {
+                            if (isActive) {
+                              e.preventDefault();
+                              const mouseEvent = new MouseEvent('mouseup', {});
+                              stopDrawing(mouseEvent);
+                            }
+                          }}
                         />
-                      )}
-                    </div>
-                    
-                    {/* Enhanced Pencil Tools Dropdown */}
-                    {showPencilDropdown === `new-${index}` && (
-                      <div className="absolute left-full top-0 ml-2 bg-white border border-gray-200 rounded-md shadow-lg p-3 min-w-[220px] z-30">
-                        <div className="space-y-3">
-                          {/* Line Width */}
-                          <div>
-                            <p className="text-xs font-medium text-gray-700 mb-2">Brush Size:</p>
-                            <input
-                              type="range"
-                              min="1"
-                              max="10"
-                              value={lineWidth}
-                              onChange={(e) => setLineWidth(parseInt(e.target.value))}
-                              className="w-full"
-                            />
-                            <div className="text-xs text-gray-500 text-center">{lineWidth}px</div>
-                          </div>
-                          
-                          {/* Action Buttons */}
-                          <div className="flex gap-2 pb-2 border-b border-gray-200">
-                            <button
-                              onClick={() => clearCanvas(`new-${index}`)}
-                              className="px-3 py-1 text-xs bg-red-100 text-red-600 rounded border hover:bg-red-200"
-                              title="Clear all drawings"
-                            >
-                              🗑️ Clear
-                            </button>
-                          </div>
-                          
-                          {/* Colors Section */}
-                          <div>
-                            <p className="text-xs font-medium text-gray-700 mb-2">Colors:</p>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {colors.map((color) => (
+
+                        {/* RIGHT SIDE DROPDOWN - Compact Version */}
+                        {shouldShowDropdown && (
+                          <div className="absolute left-full top-0 ml-2 bg-white border border-gray-300 rounded-md shadow-lg p-2 min-w-[200px] z-50 max-h-[350px] overflow-y-auto">
+                            <div className="space-y-2">
+                              {/* Header with Close Button */}
+                              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                                <h3 className="text-xs font-medium text-gray-800">🎨 Tools</h3>
                                 <button
-                                  key={color}
-                                  onClick={() => setSelectedColor(color)}
-                                  className={`w-6 h-6 rounded-full transition-transform border-2 hover:scale-110 ${
-                                    selectedColor === color ? 'border-gray-800 scale-110' : 'border-gray-300'
-                                  }`}
-                                  style={{ backgroundColor: color }}
-                                  title={`Select ${color}`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          
-                          {/* Tools Section */}
-                          <div>
-                            <p className="text-xs font-medium text-gray-700 mb-2">Tools:</p>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {tools.map((tool) => (
-                                <button
-                                  key={tool.name}
-                                  onClick={() => setSelectedTool(tool.name)}
-                                  className={`w-8 h-8 flex items-center justify-center text-sm border rounded transition-transform hover:scale-105 ${
-                                    selectedTool === tool.name 
-                                      ? 'bg-blue-100 text-blue-700 border-blue-300' 
-                                      : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
-                                  }`}
-                                  title={tool.title}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('🖋️ Closing dropdown via X button');
+                                    setShowPencilDropdown(null);
+                                    setActivePencilScreenshot(null);
+                                  }}
+                                  className="p-0.5 hover:bg-gray-100 rounded transition-colors"
+                                  title="Close"
                                 >
-                                  {tool.icon}
+                                  <X className="w-3 h-3 text-gray-600" />
                                 </button>
-                              ))}
+                              </div>
+
+                              {/* Line Width */}
+                              <div>
+                                <p className="text-xs font-medium text-gray-700 mb-1">Size:</p>
+                                <input
+                                  type="range"
+                                  min="1"
+                                  max="15"
+                                  value={lineWidth}
+                                  onChange={(e) => setLineWidth(parseInt(e.target.value))}
+                                  className="w-full h-1 bg-gray-200 rounded appearance-none cursor-pointer"
+                                />
+                                <div className="text-xs text-gray-500 text-center">{lineWidth}px</div>
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="pb-2 border-b border-gray-200">
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    console.log('🖋️ Clear button clicked for:', canvasId);
+                                    clearCanvas(canvasId);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-red-50 text-red-600 rounded border hover:bg-red-100 transition-colors w-full"
+                                  title="Clear all drawings"
+                                >
+                                  🗑️ Clear
+                                </button>
+                              </div>
+
+                              {/* Tools Section */}
+                              <div>
+                                <p className="text-xs font-medium text-gray-700 mb-1">Tools:</p>
+                                <div className="grid grid-cols-3 gap-1">
+                                  {tools.map((tool) => (
+                                    <button
+                                      key={tool.name}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        console.log('🖋️ Tool selected:', tool.name);
+                                        setSelectedTool(tool.name);
+                                      }}
+                                      className={`w-full h-7 flex items-center justify-center text-xs border rounded transition-all hover:scale-105 ${selectedTool === tool.name
+                                        ? 'bg-blue-100 text-blue-700 border-blue-300'
+                                        : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                                        }`}
+                                      title={tool.title}
+                                    >
+                                      <span className="text-sm">{tool.icon}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Colors Section */}
+                              <div>
+                                <p className="text-xs font-medium text-gray-700 mb-1">Colors:</p>
+                                <div className="grid grid-cols-6 gap-1">
+                                  {colors.map((color) => (
+                                    <button
+                                      key={color}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        console.log('🖋️ Color selected:', color);
+                                        setSelectedColor(color);
+                                      }}
+                                      className={`w-6 h-6 rounded-full transition-transform border hover:scale-110 ${selectedColor === color ? 'border-gray-800 scale-110 shadow-md' : 'border-gray-300'
+                                        }`}
+                                      style={{ backgroundColor: color }}
+                                      title={`Select ${color}`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Current Settings Display */}
+                              <div className="pt-2 border-t border-gray-200">
+                                <p className="text-xs text-gray-600 bg-gray-50 p-1.5 rounded text-center">
+                                  <strong>{tools.find(t => t.name === selectedTool)?.title}</strong>
+                                  {selectedTool !== 'eraser' && (
+                                    <>
+                                      {' '}- <span
+                                        className="inline-block w-2 h-2 rounded-full border border-gray-400 align-middle mx-0.5"
+                                        style={{ backgroundColor: selectedColor }}
+                                      ></span>
+                                      {' '}- {lineWidth}px
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+
+                              {/* Start Drawing Button */}
+                              <div>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    console.log('🖋️ Start Drawing clicked for:', canvasId);
+                                    setShowPencilDropdown(null);
+                                    // Keep activePencilScreenshot active for drawing
+                                  }}
+                                  className="w-full py-1.5 px-3 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 transition-colors"
+                                >
+                                  ✏️ Draw
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1707,7 +1950,7 @@ export default function Page({ params }) {
                 )}
               </div>
               <div className="flex flex-col gap-2 items-end">
-                
+
                 <button
                   type="button"
                   onClick={(e) => handleSave(e)}
@@ -1724,7 +1967,7 @@ export default function Page({ params }) {
           </div>
 
           {/* Generate Link Button */}
-          <button 
+          <button
             onClick={handleCreateShareLink}
             className="w-full bg-orange-400 hover:bg-orange-500 text-white font-medium py-4 rounded-md transition-colors mt-8 mb-2 flex flex-col gap-1 items-center justify-center"
           >
@@ -1737,9 +1980,9 @@ export default function Page({ params }) {
             <button onClick={handleDisconnect} disabled={!isConnected} className="bg-red-500 disabled:opacity-50 hover:bg-red-600 text-white font-medium py-4 rounded-md transition-colors flex-1 whitespace-pre">
               End Video <br /> (Without Saving)
             </button>
-            <button 
-              onClick={(e) => handleEndVideoAndSave(e)} 
-              disabled={!isConnected && recordings.length === 0 && screenshots.length === 0} 
+            <button
+              onClick={(e) => handleEndVideoAndSave(e)}
+              disabled={!isConnected && recordings.length === 0 && screenshots.length === 0}
               className="bg-green-500 disabled:opacity-50 hover:bg-green-600 text-white font-medium py-4 rounded-md transition-colors flex-1 whitespace-pre"
             >
               End Video and <br />
